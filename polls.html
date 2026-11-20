@@ -135,7 +135,7 @@ async function loadPolls() {
       .from("poll_options")
       .select("id,option_text")
       .eq("poll_id", poll.id)
-      .order("creation_at", { ascending: true });
+      .order("created_at", { ascending: true });
 
     if (optionsError) {
       optionsBox.appendChild(
