@@ -139,8 +139,8 @@ async function loadPolls() {
 
     if (optionsError) {
       optionsBox.appendChild(
-        createText("p", "Unable to load choices.", "error")
-      );
+  createText("p", "Options error: " + optionsError.message, "error")
+);
       console.error(optionsError);
     } else if (!options || options.length === 0) {
       optionsBox.appendChild(
