@@ -105,7 +105,7 @@ async function loadPolls() {
     .order("created_at", { ascending: false });
 
   if (pollError) {
-    showMessage("We couldn't load the polls. Please try again later.", true);
+    showMessage("Database error: " + pollError.message, true);
     console.error(pollError);
     return;
   }
