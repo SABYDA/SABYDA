@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
+<title>SABYDA | The Sound of Every Fan</title>
+
+<style>
+:root {
+  --bg:#0b1424;
+  --panel:#14243a;
+  --card:#1b304b;
+  --blue:#55adff;
+  --text:#f4f7fc;
+  --muted:#a8b9ce;
+}
+* {box-sizing:border-box}
+html {scroll-behavior:smooth}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+}
+header {
+  padding:20px;
+  background:#101c30;
+  position:sticky;
+  top:0;
+  z-index:10;
+  border-bottom:1px solid #263a54;
+}
+.top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  max-width:1100px;
+  margin:auto;
+}
+.logo {
+  font-size:27px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+.logo span {color:var(--blue)}
+.tagline {
+  font-size:10px;
+  color:var(--muted);
+  margin-top:5px;
+}
+nav {
+  display:flex;
+  gap:9px;
+  overflow-x:auto;
+  max-width:1100px;
+  margin:20px auto 0;
+  padding-bottom:4px;
+}
+nav a {
+  color:var(--muted);
+  text-decoration:none;
+  background:var(--panel);
+  padding:11px 15px;
+  border-radius:10px;
+  white-space:nowrap;
+  font-size:13px;
+}
+nav a:hover {background:var(--blue);color:#071525}
+main {max-width:1100px;margin:auto;padding:20px}
+section {margin:30px 0;scroll-margin-top:160px}
+.hero {
+  background:linear-gradient(120deg,#183a60,#14243a 70%);
+  border-radius:20px;
+  padding:35px 25px;
+}
+.hero h1 {font-size:clamp(30px,6vw,48px);margin:12px 0}
+.hero p {color:#d0deef;line-height:1.7;max-width:550px}
+.eyebrow {color:var(--blue);font-weight:bold;font-size:12px}
+.button {
+  display:inline-block;
+  padding:13px 19px;
+  background:var(--blue);
+  color:#071525;
+  border:0;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+h2 {font-size:23px;margin-bottom:8px}
+.sub {color:var(--muted);font-size:14px;line-height:1.6}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+.card {
+  background:var(--panel);
+  border:1px solid #263c58;
+  border-radius:16px;
+  padding:19px;
+  min-width:0;
+}
+.card h3 {margin:8px 0}
+.card p {color:var(--muted);font-size:13px;line-height:1.6}
+.feature {
+  background:linear-gradient(145deg,#203e61,#14243a);
+}
+.feature-icon {font-size:32px}
+.tag {
+  display:inline-block;
+  background:#254d72;
+  color:#9ed0ff;
+  border-radius:20px;
+  padding:6px 10px;
+  font-size:11px;
+  margin-bottom:8px;
+}
+.artist {
+  background:var(--card);
+  padding:12px;
+  border-radius:12px;
+  margin:10px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.artist button,.choice {
+  border:1px solid #45617e;
+  color:white;
+  background:#263f5c;
+  padding:10px 13px;
+  border-radius:9px;
+  cursor:pointer;
+}
+.artist button:hover,.choice:hover {background:var(--blue);color:#071525}
+.battle {
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:12px;
+  align-items:center;
+  text-align:center;
+}
+.battle .card {padding:20px 8px}
+.vs {font-size:22px;font-weight:900;color:var(--blue)}
+.quiz-options {display:grid;gap:10px;margin-top:15px}
+.quiz-options button {text-align:left}
+.result {color:var(--blue);font-weight:bold;margin-top:12px}
+footer {
+  text-align:center;
+  color:var(--muted);
+  padding:35px 15px;
+  border-top:1px solid #263a54;
+  font-size:13px;
+}
+@media(max-width:650px) {
+  main {padding:14px}
+  .grid {grid-template-columns:repeat(2,1fr)}
+  .hero {padding:27px 20px}
+}
+@media(max-width:390px) {
+  .grid {grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <div class="logo">♫ <span>SABYDA</span></div>
+      <div class="tagline">THE SOUND OF EVERY FAN</div>
+    </div>
+    <div>🔔</div>
+  </div>
+
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#charts">Charts</a>
+    <a href="#polls">Polls</a>
+    <a href="#awards">Awards</a>
+    <a href="#battles">Battles</a>
+    <a href="#quiz">Music Quiz</a>
+    <a href="#discover">Discover</a>
+  </nav>
+</header>
+
+<main>
+
+<section id="home" class="hero">
+  <div class="eyebrow">WELCOME TO SABYDA</div>
+  <h1>The Sound of Every Fan.</h1>
+  <p>
+    Discover music. Support your favourite artists.
+    Make your voice count. Experience music culture
+    in a whole new way.
+  </p>
+  <a class="button" href="#discover">Explore Music →</a>
+</section>
+
+<section>
+  <h2>Explore SABYDA</h2>
+  <p class="sub">Everything happening in the world of music.</p>
+
+  <div class="grid">
+    <a class="card" href="#charts" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">📊</div>
+      <h3>Music Charts</h3>
+      <p>Discover trending songs and artists.</p>
+    </a>
+    <a class="card" href="#polls" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">🔥</div>
+      <h3>Polls</h3>
+      <p>Vote and make your opinion count.</p>
+    </a>
+    <a class="card" href="#awards" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">🏆</div>
+      <h3>Artist Awards</h3>
+      <p>Celebrate artists chosen by fans.</p>
+    </a>
+    <a class="card" href="#battles" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">⚔️</div>
+      <h3>Artist Battles</h3>
+      <p>Choose your favourite in a showdown.</p>
+    </a>
+    <a class="card" href="#quiz" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">🧠</div>
+      <h3>Music Quiz</h3>
+      <p>Test your music knowledge.</p>
+    </a>
+    <a class="card" href="#discover" style="text-decoration:none;color:inherit">
+      <div class="feature-icon">🎧</div>
+      <h3>Music Discovery</h3>
+      <p>Find songs, albums and artists.</p>
+    </a>
+  </div>
+</section>
+
+<section id="awards">
+  <h2>🏆 Artist Awards</h2>
+  <p class="sub">The fans decide who deserves the crown.</p>
+
+  <div class="grid">
+    <div class="card feature">
+      <span class="tag">WEEKLY AWARD</span>
+      <div class="feature-icon">🌟</div>
+      <h3>Artist of the Week</h3>
+      <p>Vote for the artist who deserves this week's recognition.</p>
+      <a class="button" href="#polls">View Nominees →</a>
+    </div>
+    <div class="card feature">
+      <span class="tag">MONTHLY AWARD</span>
+      <div class="feature-icon">👑</div>
+      <h3>Artist of the Month</h3>
+      <p>Help choose the monthly music champion.</p>
+      <a class="button" href="#polls">View Nominees →</a>
+    </div>
+  </div>
+</section>
+
+<section id="polls">
+  <h2>🔥 Trending Polls</h2>
+  <p class="sub">Have your say in Nigerian music.</p>
+
+  <div class="card">
+    <span class="tag">SAMPLE POLL</span>
+    <h3>Who is Nigeria's biggest music star?</h3>
+    <p>Choose your favourite artist.</p>
+    <div id="pollChoices">
+      <div class="artist">Burna Boy <button onclick="selectPoll(this)">Choose</button></div>
+      <div class="artist">Wizkid <button onclick="selectPoll(this)">Choose</button></div>
+      <div class="artist">Davido <button onclick="selectPoll(this)">Choose</button></div>
+      <div class="artist">Asake <button onclick="selectPoll(this)">Choose</button></div>
+      <div class="artist">Rema <button onclick="selectPoll(this)">Choose</button></div>
+    </div>
+    <p id="pollMessage" class="result">Voting will be connected to the secure database.</p>
+  </div>
+</section>
+
+<section id="charts">
+  <h2>📊 Music Charts</h2>
+  <p class="sub">Explore the sounds making waves.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="feature-icon">🇳🇬</div>
+      <h3>Nigeria Top 50</h3>
+      <p>Discover the songs trending in Nigeria.</p>
+      <span class="tag">Coming soon</span>
+    </div>
+    <div class="card">
+      <div class="feature-icon">🌍</div>
+      <h3>Global Top 50</h3>
+      <p>Explore music trending around the world.</p>
+      <span class="tag">Coming soon</span>
+    </div>
+  </div>
+</section>
+
+<section id="battles">
+  <h2>⚔️ Artist Battles</h2>
+  <p class="sub">Two artists. One showdown. Your choice.</p>
+
+  <div class="card">
+    <span class="tag">SAMPLE BATTLE</span>
+    <div class="battle">
+      <div class="card">
+        <div class="feature-icon">🎤</div>
+        <h3>Wizkid</h3>
+        <button class="choice" onclick="battleVote('Wizkid')">Choose</button>
+      </div>
+      <div class="vs">VS</div>
+      <div class="card">
+        <div class="feature-icon">🎤</div>
+        <h3>Davido</h3>
+        <button class="choice" onclick="battleVote('Davido')">Choose</button>
+      </div>
+    </div>
+    <p id="battleMessage" class="result">Sample battle. Official voting coming soon.</p>
+  </div>
+</section>
+
+<section id="quiz">
+  <h2>🧠 Music Quiz</h2>
+  <p class="sub">Test your knowledge of Nigerian music.</p>
+
+  <div class="card">
+    <span class="tag">SAMPLE QUIZ</span>
+    <h3>Which artist released the album 'Made in Lagos'?</h3>
+    <div class="quiz-options">
+      <button class="choice" onclick="answerQuiz(this,false)">Davido</button>
+      <button class="choice" onclick="answerQuiz(this,true)">Wizkid</button>
+      <button class="choice" onclick="answerQuiz(this,false)">Burna Boy</button>
+      <button class="choice" onclick="answerQuiz(this,false)">Rema</button>
+    </div>
+    <p id="quizMessage" class="result">Choose your answer.</p>
+  </div>
+</section>
+
+<section id="discover">
+  <h2>🎧 Music Discovery</h2>
+  <p class="sub">Choose your favourite platform to discover music.</p>
+
+  <div class="grid">
+    <a class="card" href="https://open.spotify.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>🟢 Spotify</h3><p>Listen and discover music.</p>
+    </a>
+    <a class="card" href="https://music.apple.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>🍎 Apple Music</h3><p>Explore songs and albums.</p>
+    </a>
+    <a class="card" href="https://music.youtube.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>▶ YouTube Music</h3><p>Discover new sounds.</p>
+    </a>
+    <a class="card" href="https://audiomack.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>🎵 Audiomack</h3><p>Find emerging artists.</p>
+    </a>
+    <a class="card" href="https://www.boomplay.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>🎶 Boomplay</h3><p>Explore African music.</p>
+    </a>
+    <a class="card" href="https://www.deezer.com/" target="_blank" style="color:inherit;text-decoration:none">
+      <h3>🎧 Deezer</h3><p>Listen to your favourites.</p>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="logo">♫ SABYDA</div>
+  <p>The Sound of Every Fan.</p>
+  <p>Music • Culture • Entertainment</p>
+  <p>© 2026 SABYDA. All rights reserved.</p>
+</footer>
+
+<script>
+function selectPoll(button) {
+  document.getElementById("pollMessage").textContent =
+    "You selected " + button.parentElement.firstChild.textContent.trim() +
+    ". Official voting will be enabled soon.";
+}
+
+function battleVote(artist) {
+  document.getElementById("battleMessage").textContent =
+    "You chose " + artist + ". Official battle voting coming soon.";
+}
+
+function answerQuiz(button, correct) {
+  const message = document.getElementById("quizMessage");
+  if (message.dataset.done === "yes") return;
+
+  message.dataset.done = "yes";
+  message.textContent = correct
+    ? "Correct! 🎉 You know your music."
+    : "Not quite! The correct answer is Wizkid.";
+
+  document.querySelectorAll(".quiz-options button").forEach(b => {
+    b.disabled = true;
+  });
+}
+</script>
+
+</body>
+  </html>
+                                   
