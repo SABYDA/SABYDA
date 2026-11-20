@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
+<title>Join SABYDA</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1424;color:#f4f7fc;
+ font-family:Arial,sans-serif;min-height:100vh;
+ display:flex;align-items:center;justify-content:center;
+ padding:20px
+}
+.card{
+ width:100%;max-width:420px;background:#14243a;
+ border:1px solid #29415e;border-radius:18px;
+ padding:28px
+}
+.logo{font-size:28px;font-weight:900;text-align:center}
+.logo span{color:#55adff}
+.tagline{text-align:center;color:#a8b9ce;font-size:11px;margin:7px 0 25px}
+h1{text-align:center;font-size:25px}
+p{color:#a8b9ce;line-height:1.6;font-size:14px}
+label{display:block;margin:16px 0 7px;font-size:13px}
+input{
+ width:100%;padding:14px;background:#0b1424;
+ color:white;border:1px solid #38516e;
+ border-radius:9px;font-size:15px
+}
+button{
+ width:100%;margin-top:20px;padding:14px;
+ background:#55adff;color:#071525;border:0;
+ border-radius:9px;font-weight:bold;font-size:15px;
+ cursor:pointer
+}
+.message{text-align:center;margin-top:15px}
+a{color:#70baff;text-decoration:none}
+.back{text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="card">
+ <div class="logo">♫ <span>SABYDA</span></div>
+ <div class="tagline">THE SOUND OF EVERY FAN</div>
+
+ <h1>Create your account</h1>
+ <p>Join SABYDA to vote, support your favourite artists and participate in music entertainment.</p>
+
+ <form id="signupForm">
+  <label for="email">Email address</label>
+  <input id="email" type="email" required autocomplete="email">
+
+  <label for="password">Password</label>
+  <input id="password" type="password" required minlength="8" autocomplete="new-password">
+
+  <button type="submit" id="signupButton">Create Account</button>
+ </form>
+
+ <p id="message" class="message" aria-live="polite"></p>
+
+ <p class="back">Already a member? <a href="login.html">Log in</a></p>
+ <p class="back"><a href="index.html">← Back to SABYDA</a></p>
+</div>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const supabase = createClient(
+ "https://otmgseddljgeuqetufsm.supabase.co",
+ "sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG"
+);
+
+const form = document.getElementById("signupForm");
+const message = document.getElementById("message");
+const button = document.getElementById("signupButton");
+
+form.addEventListener("submit", async (event) => {
+ event.preventDefault();
+
+ button.disabled = true;
+ button.textContent = "Creating account...";
+ message.textContent = "";
+
+ const email = document.getElementById("email").value.trim();
+ const password = document.getElementById("password").value;
+
+ const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+   emailRedirectTo: "https://juxtkizz.github.io/SABYDA/"
+  }
+ });
+
+ button.disabled = false;
+ button.textContent = "Create Account";
+
+ if (error) {
+  message.textContent = error.message;
+  return;
+ }
+
+ message.textContent = data.session
+  ? "Account created! You can now continue to SABYDA."
+  : "Registration received! Check your email to verify your account.";
+});
+</script>
+</body>
+</html>
