@@ -4,7 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
 <title>Music Polls | SABYDA</title>
+
 <style>
 *{box-sizing:border-box}
 body{
@@ -28,14 +30,16 @@ p{color:#b8c9dd;line-height:1.6}
  background:#14243a;border:1px solid #29415e;
  border-radius:15px;padding:20px;margin-top:18px
 }
-button{
- background:#55adff;color:#071525;border:0;
- padding:11px 17px;border-radius:9px;
- font-weight:bold;cursor:pointer
+.option{
+ background:#1b304b;border:1px solid #29415e;
+ padding:13px;border-radius:10px;margin-top:10px
 }
+.status{color:#70baff;margin-top:15px}
+.error{color:#ff9999}
 footer{text-align:center;color:#8295ad;padding:30px}
 </style>
 </head>
+
 <body>
 <header>
 <a href="index.html">← Back to SABYDA</a>
@@ -49,22 +53,8 @@ footer{text-align:center;color:#8295ad;padding:30px}
 <p>Your opinion matters. Vote on music, artists, albums and the biggest conversations in entertainment.</p>
 </div>
 
-<div class="card">
-<h2>🎤 Artist Polls</h2>
-<p>Vote for your favourite artists and share your music preferences.</p>
-<p>Active artist polls will appear here.</p>
-</div>
-
-<div class="card">
-<h2>💿 Music Polls</h2>
-<p>Which songs, albums and collaborations deserve recognition?</p>
-<p>Music polls will appear here.</p>
-</div>
-
-<div class="card">
-<h2>🏆 Entertainment Polls</h2>
-<p>Join interesting discussions through public voting.</p>
-<p>More polls coming soon.</p>
+<div id="pollContainer">
+<p class="status">Loading polls...</p>
 </div>
 </main>
 
@@ -72,5 +62,113 @@ footer{text-align:center;color:#8295ad;padding:30px}
 ♫ SABYDA<br>
 The Sound of Every Fan.
 </footer>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL =
+"https://otmgseddljgeuqetufsm.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG";
+
+const supabase = createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+const container = document.getElementById("pollContainer");
+
+function showMessage(message, isError = false) {
+  container.replaceChildren();
+  const p = document.createElement("p");
+  p.className = isError ? "status error" : "status";
+  p.textContent = message;
+  container.appendChild(p);
+}
+
+function createText(tag, text, className) {
+  const element = document.createElement(tag);
+  element.textContent = text || "";
+  if (className) element.className = className;
+  return element;
+}
+
+async function loadPolls() {
+  showMessage("Loading polls...");
+
+  const { data: polls, error: pollError } = await supabase
+    .from("polls")
+    .select("id,title,description,status,starts_at,end_at")
+    .eq("status", "open")
+    .order("created_at", { ascending: false });
+
+  if (pollError) {
+    showMessage("We couldn't load the polls. Please try again later.", true);
+    console.error(pollError);
+    return;
+  }
+
+  container.replaceChildren();
+
+  if (!polls || polls.length === 0) {
+    showMessage("There are no active polls right now. Please check back soon.");
+    return;
+  }
+
+  for (const poll of polls) {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.appendChild(createText("span", "ACTIVE POLL", "tag"));
+    card.appendChild(createText("h2", poll.title));
+    
+    if (poll.description) {
+      card.appendChild(createText("p", poll.description));
+    }
+
+    const optionsBox = document.createElement("div");
+    optionsBox.appendChild(createText("p", "Available choices:"));
+
+    const { data: options, error: optionsError } = await supabase
+      .from("poll_options")
+      .select("id,option_text")
+      .eq("poll_id", poll.id)
+      .order("creation_at", { ascending: true });
+
+    if (optionsError) {
+      optionsBox.appendChild(
+        createText("p", "Unable to load choices.", "error")
+      );
+      console.error(optionsError);
+    } else if (!options || options.length === 0) {
+      optionsBox.appendChild(
+        createText("p", "No choices have been added yet.")
+      );
+    } else {
+      for (const option of options) {
+        optionsBox.appendChild(
+          createText("div", option.option_text, "option")
+        );
+      }
+    }
+
+    card.appendChild(optionsBox);
+
+    card.appendChild(
+      createText(
+        "p",
+        "Voting will be available after secure voting is configured.",
+        "status"
+      )
+    );
+
+    container.appendChild(card);
+  }
+}
+
+loadPolls();
+</script>
 </body>
 </html>
