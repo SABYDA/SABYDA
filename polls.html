@@ -100,7 +100,7 @@ async function loadPolls() {
 
   const { data: polls, error: pollError } = await supabase
     .from("polls")
-    .select("id,title,description,status,starts_at,end_at")
+    .select("id,title,description,status,created_at")
     .eq("status", "open")
     .order("created_at", { ascending: false });
 
