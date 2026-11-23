@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
+<title>SABYDA | Account Access</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;min-height:100vh;padding:20px;
+ display:flex;align-items:center;justify-content:center;
+ background:#0b1424;color:#f4f7fc;
+ font-family:Arial,sans-serif
+}
+.card{
+ width:100%;max-width:430px;padding:28px;
+ background:#14243a;border:1px solid #29415e;
+ border-radius:18px
+}
+.logo{text-align:center;font-size:29px;font-weight:900}
+.logo span{color:#55adff}
+.tagline{text-align:center;color:#a8b9ce;font-size:11px;margin:7px 0 25px}
+h1{text-align:center;font-size:25px}
+p{color:#a8b9ce;font-size:14px;line-height:1.6}
+.tabs{display:flex;gap:8px;margin:20px 0}
+.tabs button{
+ flex:1;padding:12px;border-radius:9px;
+ border:1px solid #38516e;background:#0b1424;
+ color:white;cursor:pointer
+}
+.tabs button.active{background:#55adff;color:#071525}
+label{display:block;margin:15px 0 7px;font-size:13px}
+input{
+ width:100%;padding:14px;background:#0b1424;
+ color:white;border:1px solid #38516e;
+ border-radius:9px;font-size:15px
+}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:65px}
+.show{
+ position:absolute;right:10px;top:50%;
+ transform:translateY(-50%);border:0;
+ background:none;color:#70baff;cursor:pointer
+}
+.primary,.social{
+ width:100%;padding:14px;margin-top:16px;
+ border:0;border-radius:9px;font-weight:bold;
+ font-size:14px;cursor:pointer
+}
+.primary{background:#55adff;color:#071525}
+.social{background:#263f5c;color:white;border:1px solid #45617e}
+.social:disabled,.primary:disabled{opacity:.6;cursor:not-allowed}
+.separator{text-align:center;margin:18px 0;color:#8296ad;font-size:12px}
+.message{text-align:center;margin-top:15px;overflow-wrap:anywhere}
+.links{text-align:center;margin-top:17px;font-size:13px}
+a{color:#70baff;text-decoration:none}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+ <div class="logo">♫ <span>SABYDA</span></div>
+ <div class="tagline">THE SOUND OF EVERY FAN</div>
+
+ <h1 id="heading">Welcome to SABYDA</h1>
+ <p id="intro">Create an account or log in to join the music community.</p>
+
+ <div class="tabs">
+  <button type="button" id="loginTab">Log In</button>
+  <button type="button" id="signupTab" class="active">Sign Up</button>
+ </div>
+
+ <form id="authForm">
+  <div id="nameArea" class="hidden">
+   <label for="name">Your name</label>
+   <input id="name" type="text" autocomplete="name">
+  </div>
+
+  <label for="email">Email address</label>
+  <input id="email" type="email" required autocomplete="email">
+
+  <label for="password">Password</label>
+  <div class="password-wrap">
+   <input id="password" type="password" required minlength="8" autocomplete="new-password">
+   <button class="show" type="button" id="showPassword">Show</button>
+  </div>
+
+  <div id="confirmArea">
+   <label for="confirmPassword">Confirm password</label>
+   <input id="confirmPassword" type="password" autocomplete="new-password">
+  </div>
+
+  <p id="forgotArea" class="hidden"><a href="#" id="forgotPassword">Forgot password?</a></p>
+
+  <button class="primary" type="submit" id="submitButton">Create Account</button>
+ </form>
+
+ <div class="separator">OR CONTINUE WITH</div>
+
+ <button class="social" type="button" id="googleButton">Continue with Google</button>
+ <button class="social" type="button" id="spotifyButton">Continue with Spotify</button>
+
+ <p id="message" class="message" aria-live="polite"></p>
+
+ <div class="links"><a href="index.html">← Back to SABYDA</a></div>
+</div>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const supabase = createClient(
+ "https://otmgseddljgeuqetufsm.supabase.co",
+ "sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG"
+);
+
+const SITE_URL = "https://sabyda.pages.dev";
+const form = document.getElementById("authForm");
+const message = document.getElementById("message");
+const loginTab = document.getElementById("loginTab");
+const signupTab = document.getElementById("signupTab");
+const submitButton = document.getElementById("submitButton");
+
+let mode = "signup";
+
+function showMessage(text, error = false) {
+ message.textContent = text;
+ message.style.color = error ? "#ff9b9b" : "#70d6a5";
+}
+
+function setMode(nextMode) {
+ mode = nextMode;
+ const signup = mode === "signup";
+
+ document.getElementById("heading").textContent =
+  signup ? "Create your account" : "Welcome back";
+
+ document.getElementById("intro").textContent =
+  signup
+   ? "Join SABYDA and make your voice count."
+   : "Log in to continue to SABYDA.";
+
+ document.getElementById("nameArea").classList.toggle("hidden", !signup);
+ document.getElementById("confirmArea").classList.toggle("hidden", !signup);
+ document.getElementById("forgotArea").classList.toggle("hidden", signup);
+
+ document.getElementById("name").required = signup;
+ document.getElementById("confirmPassword").required = signup;
+
+ submitButton.textContent = signup ? "Create Account" : "Log In";
+ loginTab.classList.toggle("active", !signup);
+ signupTab.classList.toggle("active", signup);
+
+ showMessage("");
+}
+
+loginTab.addEventListener("click", () => setMode("login"));
+signupTab.addEventListener("click", () => setMode("signup"));
+
+document.getElementById("showPassword").addEventListener("click", () => {
+ const input = document.getElementById("password");
+ input.type = input.type === "password" ? "text" : "password";
+ document.getElementById("showPassword").textContent =
+  input.type === "password" ? "Show" : "Hide";
+});
+
+form.addEventListener("submit", async (event) => {
+ event.preventDefault();
+
+ const email = document.getElementById("email").value.trim();
+ const password = document.getElementById("password").value;
+
+ submitButton.disabled = true;
+ showMessage("Please wait...");
+
+ try {
+  if (mode === "signup") {
+   const name = document.getElementById("name").value.trim();
+   const confirm = document.getElementById("confirmPassword").value;
+
+   if (password !== confirm) {
+    showMessage("Your passwords do not match.", true);
+    return;
+   }
+
+   const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+     data: { full_name: name },
+     emailRedirectTo: SITE_URL + "/auth.html"
+    }
+   });
+
+   if (error) throw error;
+
+   showMessage(
+    data.session
+     ? "Account created! Redirecting..."
+     : "Registration successful. Please check your email to verify your account."
+   );
+
+   if (data.session) {
+    window.location.href = SITE_URL + "/index.html";
+   }
+
+  } else {
+   const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+   });
+
+   if (error) throw error;
+
+   showMessage("Login successful! Redirecting...");
+   window.location.href = SITE_URL + "/index.html";
+  }
+
+ } catch (error) {
+  showMessage(error.message, true);
+ } finally {
+  submitButton.disabled = false;
+ }
+});
+
+async function socialLogin(provider) {
+ const button = provider === "google"
+  ? document.getElementById("googleButton")
+  : document.getElementById("spotifyButton");
+
+ button.disabled = true;
+ showMessage("Connecting to " + provider + "...");
+
+ try {
+  const { error } = await supabase.auth.signInWithOAuth({
+   provider,
+   options: {
+    redirectTo: SITE_URL + "/auth.html"
+   }
+  });
+
+  if (error) throw error;
+
+ } catch (error) {
+  showMessage(error.message, true);
+  button.disabled = false;
+ }
+}
+
+document.getElementById("googleButton").addEventListener("click", () => {
+ socialLogin("google");
+});
+
+document.getElementById("spotifyButton").addEventListener("click", () => {
+ socialLogin("spotify");
+});
+
+document.getElementById("forgotPassword").addEventListener("click", async (event) => {
+ event.preventDefault();
+
+ const email = document.getElementById("email").value.trim();
+
+ if (!email) {
+  showMessage("Enter your email address first.", true);
+  return;
+ }
+
+ showMessage("Sending password reset email...");
+
+ try {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+   redirectTo: SITE_URL + "/auth.html"
+  });
+
+  if (error) throw error;
+
+  showMessage("Password reset instructions have been sent to your email.");
+
+ } catch (error) {
+  showMessage(error.message, true);
+ }
+});
+
+supabase.auth.onAuthStateChange((event, session) => {
+ if (event === "PASSWORD_RECOVERY") {
+  showMessage("Password recovery link confirmed. Password update form is not yet available.");
+ }
+});
+</script>
+</body>
+</html>
+  
