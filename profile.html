@@ -2,228 +2,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SABYDA | My Profile</title>
-<style>
-*{box-sizing:border-box}
-body{
- margin:0;padding:20px;background:#0b1424;color:#f4f7fc;
- font-family:Arial,sans-serif
-}
-.container{
- max-width:550px;margin:30px auto;background:#14243a;
- border:1px solid #29415e;border-radius:18px;padding:25px
-}
-h1{text-align:center;color:#55adff}
-p{color:#a8b9ce;line-height:1.5}
-.avatar{
- width:110px;height:110px;border-radius:50%;
- background:#263f5c;display:flex;align-items:center;
- justify-content:center;margin:20px auto;overflow:hidden;
- font-size:35px;color:#70baff
-}
-.avatar img{width:100%;height:100%;object-fit:cover}
-label{display:block;margin:17px 0 7px;font-size:14px}
-input,textarea{
- width:100%;padding:13px;border-radius:9px;
- border:1px solid #38516e;background:#0b1424;
- color:white;font-size:15px
-}
-textarea{min-height:95px;resize:vertical}
-button{
- width:100%;padding:14px;margin-top:15px;
- border:0;border-radius:9px;background:#55adff;
- color:#071525;font-weight:bold;font-size:14px
-}
-.logout{background:#263f5c;color:white}
-.message{text-align:center;overflow-wrap:anywhere}
-a{color:#70baff;text-decoration:none}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SABYDA | Public Profile</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      background: #101522;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 520px;
+      margin: 30px auto;
+      padding: 28px 22px;
+      background: #1b2435;
+      border-radius: 18px;
+      text-align: center;
+    }
+    .logo { color: #48b9ff; font-size: 25px; font-weight: bold; }
+    .avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #303c50;
+      margin: 25px auto 14px;
+      display: block;
+    }
+    h1 { margin: 10px 0 5px; font-size: 25px; }
+    .username { color: #48b9ff; margin: 0 0 18px; }
+    .bio {
+      color: #d0d7e2;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .section {
+      margin-top: 25px;
+      padding: 18px;
+      background: #263248;
+      border-radius: 12px;
+      text-align: left;
+    }
+    .section h2 { font-size: 17px; margin: 0 0 12px; }
+    .muted { color: #aeb9ca; font-size: 14px; line-height: 1.5; }
+    .edit {
+      display: inline-block;
+      margin-top: 22px;
+      padding: 12px 22px;
+      background: #168ee0;
+      color: white;
+      border-radius: 9px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #message { color: #c5d1e1; margin-top: 25px; }
+  </style>
 </head>
 <body>
-<div class="container">
- <h1>♫ SABYDA</h1>
- <p style="text-align:center">My Music Profile</p>
+  <main class="container">
+    <div class="logo">SABYDA</div>
+    <div id="message">Loading profile...</div>
 
- <div class="avatar" id="avatar">♫</div>
+    <div id="profile" hidden>
+      <img id="avatar" class="avatar" alt="Profile photo">
+      <h1 id="fullName"></h1>
+      <p class="username" id="username"></p>
+      <p class="bio" id="bio"></p>
 
- <form id="profileForm">
-  <label for="photo">Profile photo</label>
-  <input type="file" id="photo" accept="image/*">
+      <section class="section">
+        <h2>Activity Points</h2>
+        <p class="muted" id="points">
+          Activity points will appear here when the points system is connected.
+        </p>
+      </section>
 
-  <label for="fullName">Display name</label>
-  <input id="fullName" type="text" placeholder="Your name">
+      <p class="muted" id="joined"></p>
+      <a class="edit" id="editLink" href="edit-profile.html" hidden>
+        Edit Profile
+      </a>
+    </div>
+  </main>
 
-  <label for="username">Username</label>
-  <input id="username" type="text" placeholder="Choose a username">
+  <script>
+    const SUPABASE_URL = "https://otmgseddljgeuqetufsm.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG";
 
-  <label for="bio">About me</label>
-  <textarea id="bio" maxlength="300"
-   placeholder="Tell the SABYDA community about yourself"></textarea>
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  <label>Email address</label>
-  <input id="email" type="email" readonly>
+    async function loadProfile() {
+      const message = document.getElementById("message");
+      const profileBox = document.getElementById("profile");
 
-  <button type="submit" id="saveButton">Save Profile</button>
- </form>
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const requestedUsername = params.get("username");
 
- <p id="message" class="message"></p>
+        let query = db.from("profiles").select(
+          "id, username, full_name, avatar_url, bio, created_at"
+        );
 
- <button class="logout" id="logoutButton">Log Out</button>
+        if (requestedUsername) {
+          query = query.eq("username", requestedUsername);
+        } else {
+          const { data: sessionData } = await db.auth.getSession();
+          const user = sessionData.session?.user;
 
- <p style="text-align:center">
-  <a href="index.html">← Back to SABYDA</a>
- </p>
-</div>
+          if (!user) {
+            message.textContent =
+              "Profile not found. Open a profile link with a username.";
+            return;
+          }
 
-<script type="module">
-import { createClient } from
-"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+          query = query.eq("id", user.id);
+        }
 
-const supabase = createClient(
- "https://otmgseddljgeuqetufsm.supabase.co",
- "sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG"
-);
+        const { data: person, error } = await query.maybeSingle();
 
-const form = document.getElementById("profileForm");
-const message = document.getElementById("message");
-const saveButton = document.getElementById("saveButton");
+        if (error) throw error;
 
-let currentUser = null;
-let avatarUrl = null;
+        if (!person) {
+          message.textContent = "This profile could not be found.";
+          return;
+        }
 
-function showMessage(text, error = false) {
- message.textContent = text;
- message.style.color = error ? "#ff9b9b" : "#70d6a5";
-}
+        document.getElementById("fullName").textContent =
+          person.full_name || "SABYDA Member";
 
-function showAvatar(url) {
- const area = document.getElementById("avatar");
- area.innerHTML = "";
+        document.getElementById("username").textContent =
+          person.username ? "@" + person.username : "Username not set";
 
- if (url) {
-  const img = document.createElement("img");
-  img.src = url;
-  img.alt = "Profile photo";
-  area.appendChild(img);
- } else {
-  area.textContent = "♫";
- }
-}
+        document.getElementById("bio").textContent =
+          person.bio || "No bio added yet.";
 
-async function loadProfile() {
- const { data: { session }, error } =
-  await supabase.auth.getSession();
+        document.getElementById("avatar").src =
+          person.avatar_url ||
+          "https://placehold.co/200x200/263248/ffffff?text=S";
 
- if (error || !session) {
-  window.location.href = "auth.html";
-  return;
- }
+        if (person.created_at) {
+          document.getElementById("joined").textContent =
+            "Member since " +
+            new Date(person.created_at).toLocaleDateString();
+        }
 
- currentUser = session.user;
- document.getElementById("email").value =
-  currentUser.email || "";
+        const { data: sessionData } = await db.auth.getSession();
+        if (sessionData.session?.user?.id === person.id) {
+          document.getElementById("editLink").hidden = false;
+        }
 
- const { data, error: profileError } = await supabase
-  .from("profiles")
-  .select("*")
-  .eq("id", currentUser.id)
-  .single();
+        message.hidden = true;
+        profileBox.hidden = false;
 
- if (profileError) {
-  showMessage(profileError.message, true);
-  return;
- }
+      } catch (error) {
+        console.error(error);
+        message.textContent =
+          "Unable to load this profile. Please try again later.";
+      }
+    }
 
- document.getElementById("fullName").value =
-  data.full_name || "";
-
- document.getElementById("username").value =
-  data.username || "";
-
- document.getElementById("bio").value =
-  data.bio || "";
-
- avatarUrl = data.avatar_url || null;
- showAvatar(avatarUrl);
-}
-
-form.addEventListener("submit", async (event) => {
- event.preventDefault();
-
- if (!currentUser) return;
-
- saveButton.disabled = true;
- showMessage("Saving your profile...");
-
- try {
-  const file = document.getElementById("photo").files[0];
-
-  if (file) {
-   if (!file.type.startsWith("image/")) {
-    throw new Error("Please choose an image file.");
-   }
-
-   if (file.size > 3 * 1024 * 1024) {
-    throw new Error("Your photo must be smaller than 3 MB.");
-   }
-
-   const extension = file.name.split(".").pop();
-   const filePath = currentUser.id + "/avatar." + extension;
-
-   const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(filePath, file, { upsert: true });
-
-   if (uploadError) throw uploadError;
-
-   const { data: imageData } = supabase.storage
-    .from("avatars")
-    .getPublicUrl(filePath);
-
-   avatarUrl = imageData.publicUrl;
-  }
-
-  const updates = {
-   id: currentUser.id,
-   full_name: document.getElementById("fullName").value.trim(),
-   username: document.getElementById("username").value.trim(),
-   bio: document.getElementById("bio").value.trim(),
-   avatar_url: avatarUrl,
-   updated_at: new Date().toISOString()
-  };
-
-  const { error } = await supabase
-   .from("profiles")
-   .upsert(updates);
-
-  if (error) throw error;
-
-  showAvatar(avatarUrl);
-  showMessage("Your profile has been saved!");
-
- } catch (error) {
-  showMessage(error.message, true);
- } finally {
-  saveButton.disabled = false;
- }
-});
-
-document.getElementById("logoutButton")
- .addEventListener("click", async () => {
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-   showMessage(error.message, true);
-   return;
-  }
-
-  window.location.href = "auth.html";
- });
-
-loadProfile();
-</script>
+    loadProfile();
+  </script>
 </body>
-  </html>
-  
+</html>
