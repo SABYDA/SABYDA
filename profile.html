@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SABYDA | My Profile</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;padding:20px;background:#0b1424;color:#f4f7fc;
+ font-family:Arial,sans-serif
+}
+.container{
+ max-width:550px;margin:30px auto;background:#14243a;
+ border:1px solid #29415e;border-radius:18px;padding:25px
+}
+h1{text-align:center;color:#55adff}
+p{color:#a8b9ce;line-height:1.5}
+.avatar{
+ width:110px;height:110px;border-radius:50%;
+ background:#263f5c;display:flex;align-items:center;
+ justify-content:center;margin:20px auto;overflow:hidden;
+ font-size:35px;color:#70baff
+}
+.avatar img{width:100%;height:100%;object-fit:cover}
+label{display:block;margin:17px 0 7px;font-size:14px}
+input,textarea{
+ width:100%;padding:13px;border-radius:9px;
+ border:1px solid #38516e;background:#0b1424;
+ color:white;font-size:15px
+}
+textarea{min-height:95px;resize:vertical}
+button{
+ width:100%;padding:14px;margin-top:15px;
+ border:0;border-radius:9px;background:#55adff;
+ color:#071525;font-weight:bold;font-size:14px
+}
+.logout{background:#263f5c;color:white}
+.message{text-align:center;overflow-wrap:anywhere}
+a{color:#70baff;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+ <h1>♫ SABYDA</h1>
+ <p style="text-align:center">My Music Profile</p>
+
+ <div class="avatar" id="avatar">♫</div>
+
+ <form id="profileForm">
+  <label for="photo">Profile photo</label>
+  <input type="file" id="photo" accept="image/*">
+
+  <label for="fullName">Display name</label>
+  <input id="fullName" type="text" placeholder="Your name">
+
+  <label for="username">Username</label>
+  <input id="username" type="text" placeholder="Choose a username">
+
+  <label for="bio">About me</label>
+  <textarea id="bio" maxlength="300"
+   placeholder="Tell the SABYDA community about yourself"></textarea>
+
+  <label>Email address</label>
+  <input id="email" type="email" readonly>
+
+  <button type="submit" id="saveButton">Save Profile</button>
+ </form>
+
+ <p id="message" class="message"></p>
+
+ <button class="logout" id="logoutButton">Log Out</button>
+
+ <p style="text-align:center">
+  <a href="index.html">← Back to SABYDA</a>
+ </p>
+</div>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const supabase = createClient(
+ "https://otmgseddljgeuqetufsm.supabase.co",
+ "sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG"
+);
+
+const form = document.getElementById("profileForm");
+const message = document.getElementById("message");
+const saveButton = document.getElementById("saveButton");
+
+let currentUser = null;
+let avatarUrl = null;
+
+function showMessage(text, error = false) {
+ message.textContent = text;
+ message.style.color = error ? "#ff9b9b" : "#70d6a5";
+}
+
+function showAvatar(url) {
+ const area = document.getElementById("avatar");
+ area.innerHTML = "";
+
+ if (url) {
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "Profile photo";
+  area.appendChild(img);
+ } else {
+  area.textContent = "♫";
+ }
+}
+
+async function loadProfile() {
+ const { data: { session }, error } =
+  await supabase.auth.getSession();
+
+ if (error || !session) {
+  window.location.href = "auth.html";
+  return;
+ }
+
+ currentUser = session.user;
+ document.getElementById("email").value =
+  currentUser.email || "";
+
+ const { data, error: profileError } = await supabase
+  .from("profiles")
+  .select("*")
+  .eq("id", currentUser.id)
+  .single();
+
+ if (profileError) {
+  showMessage(profileError.message, true);
+  return;
+ }
+
+ document.getElementById("fullName").value =
+  data.full_name || "";
+
+ document.getElementById("username").value =
+  data.username || "";
+
+ document.getElementById("bio").value =
+  data.bio || "";
+
+ avatarUrl = data.avatar_url || null;
+ showAvatar(avatarUrl);
+}
+
+form.addEventListener("submit", async (event) => {
+ event.preventDefault();
+
+ if (!currentUser) return;
+
+ saveButton.disabled = true;
+ showMessage("Saving your profile...");
+
+ try {
+  const file = document.getElementById("photo").files[0];
+
+  if (file) {
+   if (!file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file.");
+   }
+
+   if (file.size > 3 * 1024 * 1024) {
+    throw new Error("Your photo must be smaller than 3 MB.");
+   }
+
+   const extension = file.name.split(".").pop();
+   const filePath = currentUser.id + "/avatar." + extension;
+
+   const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(filePath, file, { upsert: true });
+
+   if (uploadError) throw uploadError;
+
+   const { data: imageData } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+   avatarUrl = imageData.publicUrl;
+  }
+
+  const updates = {
+   id: currentUser.id,
+   full_name: document.getElementById("fullName").value.trim(),
+   username: document.getElementById("username").value.trim(),
+   bio: document.getElementById("bio").value.trim(),
+   avatar_url: avatarUrl,
+   updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+   .from("profiles")
+   .upsert(updates);
+
+  if (error) throw error;
+
+  showAvatar(avatarUrl);
+  showMessage("Your profile has been saved!");
+
+ } catch (error) {
+  showMessage(error.message, true);
+ } finally {
+  saveButton.disabled = false;
+ }
+});
+
+document.getElementById("logoutButton")
+ .addEventListener("click", async () => {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+   showMessage(error.message, true);
+   return;
+  }
+
+  window.location.href = "auth.html";
+ });
+
+loadProfile();
+</script>
+</body>
+  </html>
+  
