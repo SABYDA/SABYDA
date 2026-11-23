@@ -31,11 +31,21 @@ p{color:#b8c9dd;line-height:1.6}
  border-radius:15px;padding:20px;margin-top:18px
 }
 .option{
- background:#1b304b;border:1px solid #29415e;
- padding:13px;border-radius:10px;margin-top:10px
+ display:block;background:#1b304b;border:1px solid #29415e;
+ padding:14px;border-radius:10px;margin-top:10px;
+ cursor:pointer
 }
+.option input{margin-right:10px}
+.option:has(input:checked){border-color:#70baff;background:#244b70}
 .status{color:#70baff;margin-top:15px}
 .error{color:#ff9999}
+.success{color:#8be0a4}
+button{
+ background:#70baff;color:#071525;border:0;
+ padding:13px 20px;border-radius:9px;
+ font-weight:bold;cursor:pointer;margin-top:16px
+}
+button:disabled{opacity:.5;cursor:not-allowed}
 footer{text-align:center;color:#8295ad;padding:30px}
 </style>
 </head>
@@ -80,92 +90,171 @@ SUPABASE_KEY
 
 const container = document.getElementById("pollContainer");
 
-function showMessage(message, isError = false) {
-  container.replaceChildren();
-  const p = document.createElement("p");
-  p.className = isError ? "status error" : "status";
-  p.textContent = message;
-  container.appendChild(p);
+function message(text, type="status") {
+ container.replaceChildren();
+ const p = document.createElement("p");
+ p.className = type;
+ p.textContent = text;
+ container.appendChild(p);
 }
 
-function createText(tag, text, className) {
-  const element = document.createElement(tag);
-  element.textContent = text || "";
-  if (className) element.className = className;
-  return element;
+function makeText(tag,text,className="") {
+ const el = document.createElement(tag);
+ el.textContent = text || "";
+ if(className) el.className=className;
+ return el;
 }
 
 async function loadPolls() {
-  showMessage("Loading polls...");
+ const {data:{user},error:userError} =
+ await supabase.auth.getUser();
 
-  const { data: polls, error: pollError } = await supabase
-    .from("polls")
-    .select("id,title,description,status,created_at")
-    .eq("status", "open")
-    .order("created_at", { ascending: false });
+ if(userError || !user) {
+  message("Please log in or create a SABYDA account before voting.");
+  const link=document.createElement("a");
+  link.href="auth.html";
+  link.textContent="Log in / Sign up";
+  link.style.color="#70baff";
+  link.style.display="inline-block";
+  link.style.marginTop="12px";
+  container.appendChild(link);
+  return;
+ }
 
-  if (pollError) {
-    showMessage("Database error: " + pollError.message, true);
-    console.error(pollError);
-    return;
+ message("Loading polls...");
+
+ const {data:polls,error} = await supabase
+  .from("polls")
+  .select("id,title,description,status,starts_at,ends_at")
+  .eq("status","open")
+  .order("created_at",{ascending:false});
+
+ if(error) {
+  message("Could not load polls: "+error.message,"error");
+  return;
+ }
+
+ container.replaceChildren();
+
+ const now=Date.now();
+
+ const activePolls=(polls || []).filter(p =>
+  (!p.starts_at || new Date(p.starts_at).getTime()<=now) &&
+  (!p.ends_at || new Date(p.ends_at).getTime()>now)
+ );
+
+ if(activePolls.length===0) {
+  message("There are no active polls right now. Please check back soon.");
+  return;
+ }
+
+ for(const poll of activePolls) {
+  const card=document.createElement("section");
+  card.className="card";
+
+  card.appendChild(makeText("span","ACTIVE POLL","tag"));
+  card.appendChild(makeText("h2",poll.title));
+
+  if(poll.description) {
+   card.appendChild(makeText("p",poll.description));
   }
 
-  container.replaceChildren();
+  const {data:options,error:optionsError} = await supabase
+   .from("poll_options")
+   .select("id,option_text")
+   .eq("poll_id",poll.id)
+   .order("created_at",{ascending:true});
 
-  if (!polls || polls.length === 0) {
-    showMessage("There are no active polls right now. Please check back soon.");
-    return;
+  if(optionsError) {
+   card.appendChild(makeText("p","Could not load choices: "+optionsError.message,"error"));
+   container.appendChild(card);
+   continue;
   }
 
-  for (const poll of polls) {
-    const card = document.createElement("div");
-    card.className = "card";
+  if(!options || options.length===0) {
+   card.appendChild(makeText("p","No choices have been added yet."));
+   container.appendChild(card);
+   continue;
+  }
 
-    card.appendChild(createText("span", "ACTIVE POLL", "tag"));
-    card.appendChild(createText("h2", poll.title));
-    
-    if (poll.description) {
-      card.appendChild(createText("p", poll.description));
-    }
+  card.appendChild(makeText("p","Choose your preferred option:"));
 
-    const optionsBox = document.createElement("div");
-    optionsBox.appendChild(createText("p", "Available choices:"));
+  const form=document.createElement("form");
+  const choices=document.createElement("div");
 
-    const { data: options, error: optionsError } = await supabase
-      .from("poll_options")
-      .select("id,option_text")
-      .eq("poll_id", poll.id)
-      .order("created_at", { ascending: true });
+  for(const option of options) {
+   const label=document.createElement("label");
+   label.className="option";
 
-    if (optionsError) {
-      optionsBox.appendChild(
-  createText("p", "Options error: " + optionsError.message, "error")
-);
-      console.error(optionsError);
-    } else if (!options || options.length === 0) {
-      optionsBox.appendChild(
-        createText("p", "No choices have been added yet.")
-      );
+   const radio=document.createElement("input");
+   radio.type="radio";
+   radio.name="poll_"+poll.id;
+   radio.value=option.id;
+   radio.required=true;
+
+   label.appendChild(radio);
+   label.appendChild(document.createTextNode(option.option_text));
+   choices.appendChild(label);
+  }
+
+  form.appendChild(choices);
+
+  const submit=document.createElement("button");
+  submit.type="submit";
+  submit.textContent="Submit Vote";
+  form.appendChild(submit);
+
+  const feedback=makeText("p","","status");
+
+  form.addEventListener("submit",async(event)=>{
+   event.preventDefault();
+
+   const selected=form.querySelector('input[type="radio"]:checked');
+
+   if(!selected) {
+    feedback.textContent="Please select an option first.";
+    return;
+   }
+
+   const confirmed=window.confirm(
+    "Are you sure you want to submit this vote?\n\nOnce submitted, you cannot change your vote or vote again in this poll."
+   );
+
+   if(!confirmed) return;
+
+   submit.disabled=true;
+   feedback.textContent="Submitting your vote...";
+
+   const {error:voteError}=await supabase
+    .from("votes")
+    .insert({
+     poll_id:poll.id,
+     option_id:selected.value,
+     user_id:user.id,
+     voter_key:user.id
+    });
+
+   if(voteError) {
+    if(voteError.code==="23505") {
+     feedback.textContent="You have already voted in this poll. Your submitted vote cannot be changed.";
     } else {
-      for (const option of options) {
-        optionsBox.appendChild(
-          createText("div", option.option_text, "option")
-        );
-      }
+     feedback.textContent="Vote not submitted: "+voteError.message;
     }
+    feedback.className="error";
+    submit.disabled=false;
+    return;
+   }
 
-    card.appendChild(optionsBox);
+   feedback.textContent="Your vote has been submitted successfully! You earned 10 SABYDA activity points.";
+   feedback.className="success";
+   form.querySelectorAll("input").forEach(input=>input.disabled=true);
+   submit.remove();
+  });
 
-    card.appendChild(
-      createText(
-        "p",
-        "Voting will be available after secure voting is configured.",
-        "status"
-      )
-    );
-
-    container.appendChild(card);
-  }
+  card.appendChild(form);
+  card.appendChild(feedback);
+  container.appendChild(card);
+ }
 }
 
 loadPolls();
