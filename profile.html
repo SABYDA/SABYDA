@@ -75,7 +75,17 @@
       <p class="bio" id="bio"></p>
 
       <section class="section">
-        <h2>Activity Points</h2>
+  <h2>🏆 Activity Points</h2>
+
+  <h1 id="totalPoints">0</h1>
+  <p class="muted">Total SABYDA Points</p>
+
+  <div class="points-breakdown">
+    <p>🗳️ Polls: <strong id="pollPoints">0</strong> points</p>
+    <p>🧠 Quizzes: <strong id="quizPoints">0</strong> points</p>
+    <p>🎵 Other Activities: <strong id="otherPoints">0</strong> points</p>
+  </div>
+      </section>
         <p class="muted" id="points">
           Activity points will appear here when the points system is connected.
         </p>
@@ -130,6 +140,31 @@
           return;
         }
 
+        const { data: activityRows, error: activityError } = await db
+  .from("profile_activity_points")
+  .select("category, points")
+  .eq("user_id", person.id);
+
+if (activityError) throw activityError;
+
+const pointTotals = {
+  polls: 0,
+  quizzes: 0,
+  other: 0
+};
+
+(activityRows || []).forEach(row => {
+  if (row.category in pointTotals) {
+    pointTotals[row.category] += row.points;
+  }
+});
+
+document.getElementById("pollPoints").textContent = pointTotals.polls;
+document.getElementById("quizPoints").textContent = pointTotals.quizzes;
+document.getElementById("otherPoints").textContent = pointTotals.other;
+
+document.getElementById("totalPoints").textContent =
+  Object.values(pointTotals).reduce((sum, points) => sum + points, 0);
         document.getElementById("fullName").textContent =
           person.full_name || "SABYDA Member";
 
