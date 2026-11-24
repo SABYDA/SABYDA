@@ -9,49 +9,120 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
- margin:0;background:#0b1424;color:#f4f7fc;
- font-family:Arial,sans-serif
+ margin:0;
+ background:#0b1424;
+ color:#f4f7fc;
+ font-family:Arial,sans-serif;
 }
-header{background:#101c30;padding:20px}
-header a{color:#70baff;text-decoration:none}
-header h2{margin-bottom:0}
-main{max-width:850px;margin:auto;padding:20px}
+
+header{
+ background:#101c30;
+ padding:20px;
+}
+
+header a{
+ color:#70baff;
+ text-decoration:none;
+}
+
+header h2{
+ margin-bottom:0;
+}
+
+main{
+ max-width:850px;
+ margin:auto;
+ padding:20px;
+}
+
 .hero{
  background:linear-gradient(135deg,#183c61,#14243a);
- padding:28px 22px;border-radius:18px;margin-top:20px
+ padding:28px 22px;
+ border-radius:18px;
+ margin-top:20px;
 }
-h1{font-size:29px;margin:12px 0}
-p{color:#b8c9dd;line-height:1.6}
+
+h1{
+ font-size:29px;
+ margin:12px 0;
+}
+
+p{
+ color:#b8c9dd;
+ line-height:1.6;
+}
+
+.top-actions{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:10px;
+ flex-wrap:wrap;
+}
+
 .card{
- background:#14243a;border:1px solid #29415e;
- border-radius:14px;padding:18px;margin-top:15px
+ background:#14243a;
+ border:1px solid #29415e;
+ border-radius:14px;
+ padding:18px;
+ margin-top:15px;
 }
+
 .card.unread{
  border-left:4px solid #70baff;
- background:#192e49
+ background:#192e49;
 }
-.notice-title{font-size:17px;margin:0 0 8px}
-.notice-date{font-size:12px;color:#8da5c0}
-.notice-message{margin:8px 0}
+
+.notice-title{
+ font-size:17px;
+ margin:0 0 8px;
+}
+
+.notice-date{
+ font-size:12px;
+ color:#8da5c0;
+}
+
+.notice-message{
+ margin:8px 0;
+}
+
 .status{color:#70baff}
 .error{color:#ff9999}
 .success{color:#8be0a4}
+
 button{
- background:#70baff;color:#071525;border:0;
- padding:11px 16px;border-radius:8px;
- font-weight:bold;cursor:pointer;margin-top:10px
+ background:#70baff;
+ color:#071525;
+ border:0;
+ padding:11px 16px;
+ border-radius:8px;
+ font-weight:bold;
+ cursor:pointer;
+ margin-top:10px;
 }
-button:disabled{opacity:.5;cursor:not-allowed}
-.top-actions{
- display:flex;justify-content:space-between;
- align-items:center;gap:10px;flex-wrap:wrap
+
+button:disabled{
+ opacity:.5;
+ cursor:not-allowed;
 }
+
 .empty{
- text-align:center;padding:30px 15px;
- background:#14243a;border-radius:14px;margin-top:18px
+ text-align:center;
+ padding:30px 10px;
+ margin-top:18px;
+ color:#b8c9dd;
+ font-size:17px;
 }
-footer{text-align:center;color:#8295ad;padding:30px}
+
+footer{
+ text-align:center;
+ color:#8295ad;
+ padding:30px;
+}
+
 </style>
 </head>
 
@@ -67,7 +138,9 @@ footer{text-align:center;color:#8295ad;padding:30px}
 <div class="hero">
 <span style="color:#8bc8ff">MEMBER CENTRE</span>
 <h1>🔔 Notifications</h1>
-<p>Stay updated with your SABYDA activities, poll results and important community announcements.</p>
+<p>
+Stay updated with your SABYDA activities, poll results and important community announcements.
+</p>
 </div>
 
 <div class="top-actions">
@@ -87,6 +160,7 @@ The Sound of Every Fan.
 </footer>
 
 <script type="module">
+
 import { createClient } from
 "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -129,7 +203,7 @@ function formatDate(date){
 
  const parsed=new Date(date);
 
- if(Number.isNaN(parsed.getTime())) {
+ if(Number.isNaN(parsed.getTime())){
   return "Date unavailable";
  }
 
@@ -145,6 +219,7 @@ async function loadNotifications(){
  await supabase.auth.getUser();
 
  if(userError || !user){
+
   countText.textContent="";
   markAllButton.hidden=true;
 
@@ -157,6 +232,7 @@ async function loadNotifications(){
   link.textContent="Log in / Sign up";
   link.style.color="#70baff";
   container.appendChild(link);
+
   return;
  }
 
@@ -171,18 +247,37 @@ async function loadNotifications(){
   .order("created_at",{ascending:false});
 
  if(error){
+
   countText.textContent="";
   markAllButton.hidden=true;
+
   showMessage(
    "Could not load notifications: "+error.message,
    "error"
   );
+
   return;
  }
 
  container.replaceChildren();
 
  const items=notifications || [];
+
+ if(items.length===0){
+
+  countText.textContent="";
+  markAllButton.hidden=true;
+
+  container.appendChild(
+   makeText(
+    "div",
+    "There is no notification here",
+    "empty"
+   )
+  );
+
+  return;
+ }
 
  const unread=items.filter(item=>!item.read_at);
 
@@ -191,17 +286,6 @@ async function loadNotifications(){
   unread.length+" unread";
 
  markAllButton.hidden=unread.length===0;
-
- if(items.length===0){
-  container.appendChild(
-   makeText(
-    "div",
-    "You don't have any notifications yet.",
-    "empty"
-   )
-  );
-  return;
- }
 
  for(const item of items){
 
@@ -256,27 +340,36 @@ async function loadNotifications(){
      .is("read_at",null);
 
     if(updateError){
+
      button.disabled=false;
      button.textContent="Mark as read";
+
      alert(
       "Could not update notification: "+
       updateError.message
      );
+
      return;
     }
 
     await loadNotifications();
+
    });
 
    card.appendChild(button);
+
   }else{
+
    card.appendChild(
     makeText("p","✓ Read","success")
    );
+
   }
 
   container.appendChild(card);
+
  }
+
 }
 
 markAllButton.addEventListener("click",async()=>{
@@ -291,18 +384,22 @@ markAllButton.addEventListener("click",async()=>{
   .is("read_at",null);
 
  if(error){
-  alert("Could not update notifications: "+error.message);
+  alert(
+   "Could not update notifications: "+
+   error.message
+  );
  }
 
  markAllButton.disabled=false;
  markAllButton.textContent="Mark all as read";
 
  await loadNotifications();
+
 });
 
 loadNotifications();
+
 </script>
 
 </body>
-  </html>
-  
+</html>
