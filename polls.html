@@ -252,15 +252,17 @@ async function loadPolls() {
      voter_key:user.id
     });
 
+    if(voteError) {
+  if(voteError.code==="23505") {
     feedback.textContent="Poll results will be sent to your notifications after voting closes.";
-     feedback.textContent="Poll results will be sent to your notifications after voting closes.";
-    } else {
-     feedback.textContent="Vote not submitted: "+voteError.message;
+  } else {
+    feedback.textContent="Vote not submitted: "+voteError.message;
+  }
+
+  feedback.className="error";
+  submit.disabled=false;
+  return;
     }
-    feedback.className="error";
-    submit.disabled=false;
-    return;
-   }
 
    feedback.textContent="Your vote has been submitted successfully! You earned 10 activity points.";
    feedback.className="success";
