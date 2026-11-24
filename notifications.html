@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
+<title>Notifications | SABYDA</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1424;color:#f4f7fc;
+ font-family:Arial,sans-serif
+}
+header{background:#101c30;padding:20px}
+header a{color:#70baff;text-decoration:none}
+header h2{margin-bottom:0}
+main{max-width:850px;margin:auto;padding:20px}
+.hero{
+ background:linear-gradient(135deg,#183c61,#14243a);
+ padding:28px 22px;border-radius:18px;margin-top:20px
+}
+h1{font-size:29px;margin:12px 0}
+p{color:#b8c9dd;line-height:1.6}
+.card{
+ background:#14243a;border:1px solid #29415e;
+ border-radius:14px;padding:18px;margin-top:15px
+}
+.card.unread{
+ border-left:4px solid #70baff;
+ background:#192e49
+}
+.notice-title{font-size:17px;margin:0 0 8px}
+.notice-date{font-size:12px;color:#8da5c0}
+.notice-message{margin:8px 0}
+.status{color:#70baff}
+.error{color:#ff9999}
+.success{color:#8be0a4}
+button{
+ background:#70baff;color:#071525;border:0;
+ padding:11px 16px;border-radius:8px;
+ font-weight:bold;cursor:pointer;margin-top:10px
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.top-actions{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:10px;flex-wrap:wrap
+}
+.empty{
+ text-align:center;padding:30px 15px;
+ background:#14243a;border-radius:14px;margin-top:18px
+}
+footer{text-align:center;color:#8295ad;padding:30px}
+</style>
+</head>
+
+<body>
+
+<header>
+<a href="index.html">← Back to SABYDA</a>
+<h2>♫ SABYDA</h2>
+</header>
+
+<main>
+
+<div class="hero">
+<span style="color:#8bc8ff">MEMBER CENTRE</span>
+<h1>🔔 Notifications</h1>
+<p>Stay updated with your SABYDA activities, poll results and important community announcements.</p>
+</div>
+
+<div class="top-actions">
+<p id="notificationCount">Loading notifications...</p>
+<button id="markAllButton" hidden>Mark all as read</button>
+</div>
+
+<div id="notificationContainer">
+<p class="status">Loading your notifications...</p>
+</div>
+
+</main>
+
+<footer>
+♫ SABYDA<br>
+The Sound of Every Fan.
+</footer>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL =
+"https://otmgseddljgeuqetufsm.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG";
+
+const supabase = createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+const container =
+document.getElementById("notificationContainer");
+
+const countText =
+document.getElementById("notificationCount");
+
+const markAllButton =
+document.getElementById("markAllButton");
+
+let currentUser = null;
+
+function makeText(tag,text,className=""){
+ const el=document.createElement(tag);
+ el.textContent=text || "";
+ if(className) el.className=className;
+ return el;
+}
+
+function showMessage(text,type="status"){
+ container.replaceChildren();
+ container.appendChild(makeText("p",text,type));
+}
+
+function formatDate(date){
+ if(!date) return "Date unavailable";
+
+ const parsed=new Date(date);
+
+ if(Number.isNaN(parsed.getTime())) {
+  return "Date unavailable";
+ }
+
+ return parsed.toLocaleString(undefined,{
+  dateStyle:"medium",
+  timeStyle:"short"
+ });
+}
+
+async function loadNotifications(){
+
+ const {data:{user},error:userError} =
+ await supabase.auth.getUser();
+
+ if(userError || !user){
+  countText.textContent="";
+  markAllButton.hidden=true;
+
+  showMessage(
+   "Please log in to view your notifications."
+  );
+
+  const link=document.createElement("a");
+  link.href="auth.html";
+  link.textContent="Log in / Sign up";
+  link.style.color="#70baff";
+  container.appendChild(link);
+  return;
+ }
+
+ currentUser=user;
+
+ showMessage("Loading your notifications...");
+
+ const {data:notifications,error} = await supabase
+  .from("notifications")
+  .select("id,type,title,message,related_poll_id,created_at,read_at")
+  .eq("user_id",currentUser.id)
+  .order("created_at",{ascending:false});
+
+ if(error){
+  countText.textContent="";
+  markAllButton.hidden=true;
+  showMessage(
+   "Could not load notifications: "+error.message,
+   "error"
+  );
+  return;
+ }
+
+ container.replaceChildren();
+
+ const items=notifications || [];
+
+ const unread=items.filter(item=>!item.read_at);
+
+ countText.textContent =
+  items.length+" notification(s) · "+
+  unread.length+" unread";
+
+ markAllButton.hidden=unread.length===0;
+
+ if(items.length===0){
+  container.appendChild(
+   makeText(
+    "div",
+    "You don't have any notifications yet.",
+    "empty"
+   )
+  );
+  return;
+ }
+
+ for(const item of items){
+
+  const card=document.createElement("section");
+  card.className="card";
+
+  if(!item.read_at){
+   card.classList.add("unread");
+  }
+
+  const title=makeText(
+   "h3",
+   item.title || "SABYDA Notification",
+   "notice-title"
+  );
+
+  const date=makeText(
+   "p",
+   formatDate(item.created_at),
+   "notice-date"
+  );
+
+  const message=makeText(
+   "p",
+   item.message || "",
+   "notice-message"
+  );
+
+  card.appendChild(title);
+  card.appendChild(date);
+  card.appendChild(message);
+
+  if(!item.read_at){
+
+   const button=makeText(
+    "button",
+    "Mark as read"
+   );
+
+   button.type="button";
+
+   button.addEventListener("click",async()=>{
+
+    button.disabled=true;
+    button.textContent="Updating...";
+
+    const {error:updateError}=await supabase
+     .from("notifications")
+     .update({read_at:new Date().toISOString()})
+     .eq("id",item.id)
+     .eq("user_id",currentUser.id)
+     .is("read_at",null);
+
+    if(updateError){
+     button.disabled=false;
+     button.textContent="Mark as read";
+     alert(
+      "Could not update notification: "+
+      updateError.message
+     );
+     return;
+    }
+
+    await loadNotifications();
+   });
+
+   card.appendChild(button);
+  }else{
+   card.appendChild(
+    makeText("p","✓ Read","success")
+   );
+  }
+
+  container.appendChild(card);
+ }
+}
+
+markAllButton.addEventListener("click",async()=>{
+
+ markAllButton.disabled=true;
+ markAllButton.textContent="Updating...";
+
+ const {error}=await supabase
+  .from("notifications")
+  .update({read_at:new Date().toISOString()})
+  .eq("user_id",currentUser.id)
+  .is("read_at",null);
+
+ if(error){
+  alert("Could not update notifications: "+error.message);
+ }
+
+ markAllButton.disabled=false;
+ markAllButton.textContent="Mark all as read";
+
+ await loadNotifications();
+});
+
+loadNotifications();
+</script>
+
+</body>
+  </html>
+  
