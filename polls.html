@@ -191,7 +191,7 @@ async function loadPolls() {
   }
 
   if(existingVote) {
-   card.appendChild(makeText("p","You have already voted in this poll. Your submitted vote cannot be changed.","success"));
+   card.appendChild(makeText("p","Poll results will be sent to your notifications after voting closes.","success"));
    container.appendChild(card);
    continue;
   }
@@ -252,9 +252,8 @@ async function loadPolls() {
      voter_key:user.id
     });
 
-   if(voteError) {
-    if(voteError.code==="23505") {
-     feedback.textContent="You have already voted in this poll. Your submitted vote cannot be changed.";
+    feedback.textContent="Poll results will be sent to your notifications after voting closes.";
+     feedback.textContent="Poll results will be sent to your notifications after voting closes.";
     } else {
      feedback.textContent="Vote not submitted: "+voteError.message;
     }
@@ -263,7 +262,7 @@ async function loadPolls() {
     return;
    }
 
-   feedback.textContent="Your vote has been submitted successfully! You earned 10 SABYDA activity points.";
+   feedback.textContent="Your vote has been submitted successfully! You earned 10 activity points.";
    feedback.className="success";
    form.querySelectorAll("input").forEach(input=>input.disabled=true);
    submit.remove();
