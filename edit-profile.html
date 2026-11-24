@@ -5,55 +5,122 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SABYDA | My Profile</title>
+
 <style>
 *{box-sizing:border-box}
+
 body{
  margin:0;padding:20px;background:#0b1424;color:#f4f7fc;
  font-family:Arial,sans-serif
 }
+
 .container{
  max-width:550px;margin:30px auto;background:#14243a;
  border:1px solid #29415e;border-radius:18px;padding:25px
 }
+
 h1{text-align:center;color:#55adff}
 p{color:#a8b9ce;line-height:1.5}
-.avatar{
- width:110px;height:110px;border-radius:50%;
- background:#263f5c;display:flex;align-items:center;
- justify-content:center;margin:20px auto;overflow:hidden;
- font-size:35px;color:#70baff
+
+.avatar-wrap{
+ position:relative;width:116px;height:116px;margin:25px auto
 }
+
+.avatar{
+ width:116px;height:116px;border-radius:50%;
+ background:#263f5c;display:flex;align-items:center;
+ justify-content:center;overflow:hidden;font-size:35px;color:#70baff
+}
+
 .avatar img{width:100%;height:100%;object-fit:cover}
-label{display:block;margin:17px 0 7px;font-size:14px}
-input,textarea{
+
+.add-photo{
+ position:absolute;right:0;bottom:0;
+ width:38px;height:38px;border-radius:50%;
+ border:3px solid #14243a;background:#55adff;
+ color:#071525;font-size:27px;font-weight:bold;
+ display:flex;align-items:center;justify-content:center;
+ cursor:pointer;margin:0;padding:0
+}
+
+label{display:block;margin:20px 0 7px;font-size:14px}
+
+input[type="text"],input[type="email"],textarea{
  width:100%;padding:13px;border-radius:9px;
  border:1px solid #38516e;background:#0b1424;
  color:white;font-size:15px
 }
+
 textarea{min-height:95px;resize:vertical}
+
 button{
  width:100%;padding:14px;margin-top:15px;
  border:0;border-radius:9px;background:#55adff;
- color:#071525;font-weight:bold;font-size:14px
+ color:#071525;font-weight:bold;font-size:14px;cursor:pointer
 }
-button:disabled{opacity:.6}
+
+button:disabled{opacity:.6;cursor:not-allowed}
+
 .logout{background:#263f5c;color:white}
+
 .message{text-align:center;overflow-wrap:anywhere}
+
 a{color:#70baff;text-decoration:none}
-.hint{font-size:12px;margin-top:6px}
+
+#photoInput{display:none}
+
+.modal{
+ display:none;position:fixed;inset:0;z-index:20;
+ background:rgba(0,0,0,.88);padding:20px;
+ align-items:center;justify-content:center;overflow-y:auto
+}
+
+.modal-content{
+ width:100%;max-width:420px;background:#14243a;
+ border:1px solid #38516e;border-radius:18px;
+ padding:22px;text-align:center;margin:auto
+}
+
+.modal-content h2{color:#55adff;margin-top:0}
+
+#cropCanvas{
+ width:min(100%,320px);height:auto;
+ aspect-ratio:1/1;border-radius:12px;
+ background:#071525;touch-action:none;
+ display:block;margin:15px auto;cursor:grab
+}
+
+#cropCanvas:active{cursor:grabbing}
+
+.zoom-label{display:block;text-align:left;margin-top:18px}
+
+#zoom{
+ width:100%;accent-color:#55adff;margin:12px 0
+}
+
+.cancel-button{background:#263f5c;color:white}
+
+.crop-help{font-size:13px}
+
 </style>
 </head>
+
 <body>
+
 <div class="container">
+
  <h1>♫ SABYDA</h1>
  <p style="text-align:center">My Music Profile</p>
 
- <div class="avatar" id="avatar">♫</div>
+ <div class="avatar-wrap">
+  <div class="avatar" id="avatar">♫</div>
+  <button type="button" class="add-photo"
+   id="addPhoto" aria-label="Change profile photo">+</button>
+ </div>
+
+ <input type="file" id="photoInput" accept="image/*">
 
  <form id="profileForm">
-  <label for="photo">Profile photo</label>
-  <input type="file" id="photo" accept="image/*">
-  <p class="hint">Choose a photo up to 10 MB. SABYDA will automatically resize and compress it.</p>
 
   <label for="fullName">Display name</label>
   <input id="fullName" type="text" placeholder="Your name">
@@ -78,9 +145,39 @@ a{color:#70baff;text-decoration:none}
  <p style="text-align:center">
   <a href="index.html">← Back to SABYDA</a>
  </p>
+
+</div>
+
+<!-- PHOTO CROPPING WINDOW -->
+<div class="modal" id="cropModal">
+ <div class="modal-content">
+
+  <h2>Crop your profile photo</h2>
+  <p class="crop-help">
+   Move the photo to position it. Use the slider to zoom in or out.
+  </p>
+
+  <canvas id="cropCanvas" width="400" height="400"></canvas>
+
+  <label class="zoom-label" for="zoom">Zoom photo</label>
+  <input type="range" id="zoom" min="1" max="3"
+   step="0.01" value="1">
+
+  <button type="button" id="uploadPhoto">
+   Upload profile photo
+  </button>
+
+  <button type="button" class="cancel-button" id="cancelCrop">
+   Cancel
+  </button>
+
+  <p id="cropMessage" class="message"></p>
+
+ </div>
 </div>
 
 <script type="module">
+
 import { createClient } from
 "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -92,14 +189,32 @@ const supabase = createClient(
 const form = document.getElementById("profileForm");
 const message = document.getElementById("message");
 const saveButton = document.getElementById("saveButton");
-const photoInput = document.getElementById("photo");
+const photoInput = document.getElementById("photoInput");
+const cropModal = document.getElementById("cropModal");
+const cropCanvas = document.getElementById("cropCanvas");
+const ctx = cropCanvas.getContext("2d");
+const zoomInput = document.getElementById("zoom");
 
 let currentUser = null;
 let avatarUrl = null;
+let selectedImage = null;
+let baseScale = 1;
+let zoom = 1;
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
 
 function showMessage(text, error = false) {
  message.textContent = text;
  message.style.color = error ? "#ff9b9b" : "#70d6a5";
+}
+
+function showCropMessage(text, error = false) {
+ const area = document.getElementById("cropMessage");
+ area.textContent = text;
+ area.style.color = error ? "#ff9b9b" : "#70d6a5";
 }
 
 function showAvatar(url) {
@@ -116,80 +231,6 @@ function showAvatar(url) {
  }
 }
 
-async function compressPhoto(file) {
- if (!file.type.startsWith("image/")) {
-  throw new Error("Please choose a valid image.");
- }
-
- if (file.size > 10 * 1024 * 1024) {
-  throw new Error("Please choose a photo smaller than 10 MB.");
- }
-
- const imageUrl = URL.createObjectURL(file);
-
- try {
-  const img = new Image();
-
-  await new Promise((resolve, reject) => {
-   img.onload = resolve;
-   img.onerror = () => reject(
-    new Error("This photo could not be opened. Please choose another.")
-   );
-   img.src = imageUrl;
-  });
-
-  const side = 400;
-  const canvas = document.createElement("canvas");
-  canvas.width = side;
-  canvas.height = side;
-
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-   throw new Error("Photo processing is not supported by this browser.");
-  }
-
-  const cropSize = Math.min(img.width, img.height);
-  const cropX = (img.width - cropSize) / 2;
-  const cropY = (img.height - cropSize) / 2;
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, side, side);
-
-  ctx.drawImage(
-   img,
-   cropX, cropY, cropSize, cropSize,
-   0, 0, side, side
-  );
-
-  let quality = 0.85;
-
-  let blob = await new Promise(resolve =>
-   canvas.toBlob(resolve, "image/jpeg", quality)
-  );
-
-  while (blob && blob.size > 500 * 1024 && quality > 0.45) {
-   quality -= 0.1;
-   blob = await new Promise(resolve =>
-    canvas.toBlob(resolve, "image/jpeg", quality)
-   );
-  }
-
-  if (!blob) {
-   throw new Error("Could not compress this photo. Please try another.");
-  }
-
-  return new File(
-   [blob],
-   "avatar.jpg",
-   { type: "image/jpeg" }
-  );
-
- } finally {
-  URL.revokeObjectURL(imageUrl);
- }
-}
-
 async function loadProfile() {
  const { data: { session }, error } =
   await supabase.auth.getSession();
@@ -200,6 +241,7 @@ async function loadProfile() {
  }
 
  currentUser = session.user;
+
  document.getElementById("email").value =
   currentUser.email || "";
 
@@ -227,7 +269,217 @@ async function loadProfile() {
  showAvatar(avatarUrl);
 }
 
-form.addEventListener("submit", async (event) => {
+// OPEN PHONE PHOTO PICKER
+document.getElementById("addPhoto").addEventListener("click", () => {
+ photoInput.click();
+});
+
+// LOAD SELECTED PHOTO INTO CROP EDITOR
+photoInput.addEventListener("change", () => {
+ const file = photoInput.files[0];
+
+ if (!file) return;
+
+ if (!file.type.startsWith("image/")) {
+  showMessage("Please select a valid image.", true);
+  photoInput.value = "";
+  return;
+ }
+
+ if (file.size > 10 * 1024 * 1024) {
+  showMessage("Please choose a photo smaller than 10 MB.", true);
+  photoInput.value = "";
+  return;
+ }
+
+ const imageUrl = URL.createObjectURL(file);
+ const img = new Image();
+
+ img.onload = () => {
+  if (selectedImage) {
+   URL.revokeObjectURL(selectedImage.sourceUrl);
+  }
+
+  selectedImage = {
+   image: img,
+   sourceUrl: imageUrl
+  };
+
+  baseScale = Math.max(
+   400 / img.width,
+   400 / img.height
+  );
+
+  zoom = 1;
+  offsetX = 0;
+  offsetY = 0;
+  zoomInput.value = "1";
+
+  drawCrop();
+  showCropMessage("");
+  cropModal.style.display = "flex";
+ };
+
+ img.onerror = () => {
+  URL.revokeObjectURL(imageUrl);
+  photoInput.value = "";
+  showMessage("This photo could not be opened.", true);
+ };
+
+ img.src = imageUrl;
+});
+
+function drawCrop() {
+ if (!selectedImage) return;
+
+ const img = selectedImage.image;
+ const scale = baseScale * zoom;
+
+ const width = img.width * scale;
+ const height = img.height * scale;
+
+ ctx.clearRect(0, 0, 400, 400);
+
+ ctx.fillStyle = "#071525";
+ ctx.fillRect(0, 0, 400, 400);
+
+ ctx.drawImage(
+  img,
+  (400 - width) / 2 + offsetX,
+  (400 - height) / 2 + offsetY,
+  width,
+  height
+ );
+}
+
+// ZOOM
+zoomInput.addEventListener("input", () => {
+ zoom = Number(zoomInput.value);
+ drawCrop();
+});
+
+// DRAG PHOTO TO REPOSITION
+cropCanvas.addEventListener("pointerdown", event => {
+ if (!selectedImage) return;
+
+ dragging = true;
+ lastX = event.clientX;
+ lastY = event.clientY;
+
+ cropCanvas.setPointerCapture(event.pointerId);
+});
+
+cropCanvas.addEventListener("pointermove", event => {
+ if (!dragging) return;
+
+ const rect = cropCanvas.getBoundingClientRect();
+
+ const scaleX = 400 / rect.width;
+ const scaleY = 400 / rect.height;
+
+ offsetX += (event.clientX - lastX) * scaleX;
+ offsetY += (event.clientY - lastY) * scaleY;
+
+ lastX = event.clientX;
+ lastY = event.clientY;
+
+ drawCrop();
+});
+
+function stopDragging() {
+ dragging = false;
+}
+
+cropCanvas.addEventListener("pointerup", stopDragging);
+cropCanvas.addEventListener("pointercancel", stopDragging);
+
+// CLOSE CROPPING WINDOW
+document.getElementById("cancelCrop").addEventListener("click", () => {
+ cropModal.style.display = "none";
+ photoInput.value = "";
+ showCropMessage("");
+});
+
+// COMPRESS CROPPED PHOTO
+async function makeCroppedPhoto() {
+ return new Promise((resolve, reject) => {
+  cropCanvas.toBlob(blob => {
+   if (!blob) {
+    reject(new Error("Could not prepare your photo."));
+    return;
+   }
+
+   resolve(new File(
+    [blob],
+    "avatar.jpg",
+    { type: "image/jpeg" }
+   ));
+  }, "image/jpeg", 0.82);
+ });
+}
+
+// UPLOAD PHOTO IMMEDIATELY
+document.getElementById("uploadPhoto").addEventListener("click",
+ async () => {
+
+ if (!currentUser || !selectedImage) return;
+
+ const uploadButton = document.getElementById("uploadPhoto");
+ uploadButton.disabled = true;
+ showCropMessage("Preparing your photo...");
+
+ try {
+  const compressedFile = await makeCroppedPhoto();
+
+  const filePath = currentUser.id + "/avatar.jpg";
+
+  showCropMessage("Uploading your profile photo...");
+
+  const { error: uploadError } = await supabase.storage
+   .from("avatars")
+   .upload(filePath, compressedFile, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data: imageData } = supabase.storage
+   .from("avatars")
+   .getPublicUrl(filePath);
+
+  const newAvatarUrl =
+   imageData.publicUrl + "?v=" + Date.now();
+
+  const { error: profileError } = await supabase
+   .from("profiles")
+   .update({
+    avatar_url: newAvatarUrl,
+    updated_at: new Date().toISOString()
+   })
+   .eq("id", currentUser.id);
+
+  if (profileError) throw profileError;
+
+  avatarUrl = newAvatarUrl;
+  showAvatar(avatarUrl);
+
+  cropModal.style.display = "none";
+  photoInput.value = "";
+
+  if (selectedImage) {
+   URL.revokeObjectURL(selectedImage.sourceUrl);
+   selectedImage = null;
+  }
+
+  showMessage("Your profile photo has been updated!");
+
+ } catch (error) {
+  showCropMessage(error.message, true);
+ } finally {
+  uploadButton.disabled = false;
+ }
+});
+
+// SAVE PROFILE DETAILS
+form.addEventListener("submit", async event => {
  event.preventDefault();
 
  if (!currentUser) return;
@@ -236,29 +488,6 @@ form.addEventListener("submit", async (event) => {
  showMessage("Saving your profile...");
 
  try {
-  const file = photoInput.files[0];
-
-  if (file) {
-   showMessage("Preparing your photo...");
-
-   const compressedFile = await compressPhoto(file);
-   const filePath = currentUser.id + "/avatar.jpg";
-
-   showMessage("Uploading your profile photo...");
-
-   const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(filePath, compressedFile, { upsert: true });
-
-   if (uploadError) throw uploadError;
-
-   const { data: imageData } = supabase.storage
-    .from("avatars")
-    .getPublicUrl(filePath);
-
-   avatarUrl = imageData.publicUrl;
-  }
-
   const updates = {
    id: currentUser.id,
    full_name: document.getElementById("fullName").value.trim(),
@@ -274,9 +503,7 @@ form.addEventListener("submit", async (event) => {
 
   if (error) throw error;
 
-  showAvatar(avatarUrl);
-  photoInput.value = "";
-  showMessage("Your profile has been saved!");
+  showMessage("Your profile details have been saved!");
 
  } catch (error) {
   showMessage(error.message, true);
@@ -285,8 +512,10 @@ form.addEventListener("submit", async (event) => {
  }
 });
 
+// LOG OUT
 document.getElementById("logoutButton")
  .addEventListener("click", async () => {
+
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -298,6 +527,9 @@ document.getElementById("logoutButton")
  });
 
 loadProfile();
+
 </script>
+
 </body>
-</html>
+ </html>
+ 
