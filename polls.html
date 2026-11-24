@@ -177,6 +177,24 @@ async function loadPolls() {
    continue;
   }
 
+  const {data:existingVote,error:existingVoteError} = await supabase
+   .from("votes")
+   .select("id")
+   .eq("poll_id",poll.id)
+   .eq("user_id",user.id)
+   .maybeSingle();
+
+  if(existingVoteError) {
+   card.appendChild(makeText("p","Could not check your voting status: "+existingVoteError.message,"error"));
+   container.appendChild(card);
+   continue;
+  }
+
+  if(existingVote) {
+   card.appendChild(makeText("p","You have already voted in this poll. Your submitted vote cannot be changed.","success"));
+   container.appendChild(card);
+   continue;
+  }
   card.appendChild(makeText("p","Choose your preferred option:"));
 
   const form=document.createElement("form");
