@@ -36,9 +36,11 @@ button{
  border:0;border-radius:9px;background:#55adff;
  color:#071525;font-weight:bold;font-size:14px
 }
+button:disabled{opacity:.6}
 .logout{background:#263f5c;color:white}
 .message{text-align:center;overflow-wrap:anywhere}
 a{color:#70baff;text-decoration:none}
+.hint{font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -51,6 +53,7 @@ a{color:#70baff;text-decoration:none}
  <form id="profileForm">
   <label for="photo">Profile photo</label>
   <input type="file" id="photo" accept="image/*">
+  <p class="hint">Choose a photo up to 10 MB. SABYDA will automatically resize and compress it.</p>
 
   <label for="fullName">Display name</label>
   <input id="fullName" type="text" placeholder="Your name">
@@ -89,6 +92,7 @@ const supabase = createClient(
 const form = document.getElementById("profileForm");
 const message = document.getElementById("message");
 const saveButton = document.getElementById("saveButton");
+const photoInput = document.getElementById("photo");
 
 let currentUser = null;
 let avatarUrl = null;
@@ -109,6 +113,80 @@ function showAvatar(url) {
   area.appendChild(img);
  } else {
   area.textContent = "♫";
+ }
+}
+
+async function compressPhoto(file) {
+ if (!file.type.startsWith("image/")) {
+  throw new Error("Please choose a valid image.");
+ }
+
+ if (file.size > 10 * 1024 * 1024) {
+  throw new Error("Please choose a photo smaller than 10 MB.");
+ }
+
+ const imageUrl = URL.createObjectURL(file);
+
+ try {
+  const img = new Image();
+
+  await new Promise((resolve, reject) => {
+   img.onload = resolve;
+   img.onerror = () => reject(
+    new Error("This photo could not be opened. Please choose another.")
+   );
+   img.src = imageUrl;
+  });
+
+  const side = 400;
+  const canvas = document.createElement("canvas");
+  canvas.width = side;
+  canvas.height = side;
+
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+   throw new Error("Photo processing is not supported by this browser.");
+  }
+
+  const cropSize = Math.min(img.width, img.height);
+  const cropX = (img.width - cropSize) / 2;
+  const cropY = (img.height - cropSize) / 2;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, side, side);
+
+  ctx.drawImage(
+   img,
+   cropX, cropY, cropSize, cropSize,
+   0, 0, side, side
+  );
+
+  let quality = 0.85;
+
+  let blob = await new Promise(resolve =>
+   canvas.toBlob(resolve, "image/jpeg", quality)
+  );
+
+  while (blob && blob.size > 500 * 1024 && quality > 0.45) {
+   quality -= 0.1;
+   blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, "image/jpeg", quality)
+   );
+  }
+
+  if (!blob) {
+   throw new Error("Could not compress this photo. Please try another.");
+  }
+
+  return new File(
+   [blob],
+   "avatar.jpg",
+   { type: "image/jpeg" }
+  );
+
+ } finally {
+  URL.revokeObjectURL(imageUrl);
  }
 }
 
@@ -158,23 +236,19 @@ form.addEventListener("submit", async (event) => {
  showMessage("Saving your profile...");
 
  try {
-  const file = document.getElementById("photo").files[0];
+  const file = photoInput.files[0];
 
   if (file) {
-   if (!file.type.startsWith("image/")) {
-    throw new Error("Please choose an image file.");
-   }
+   showMessage("Preparing your photo...");
 
-   if (file.size > 3 * 1024 * 1024) {
-    throw new Error("Your photo must be smaller than 3 MB.");
-   }
+   const compressedFile = await compressPhoto(file);
+   const filePath = currentUser.id + "/avatar.jpg";
 
-   const extension = file.name.split(".").pop();
-   const filePath = currentUser.id + "/avatar." + extension;
+   showMessage("Uploading your profile photo...");
 
    const { error: uploadError } = await supabase.storage
     .from("avatars")
-    .upload(filePath, file, { upsert: true });
+    .upload(filePath, compressedFile, { upsert: true });
 
    if (uploadError) throw uploadError;
 
@@ -201,6 +275,7 @@ form.addEventListener("submit", async (event) => {
   if (error) throw error;
 
   showAvatar(avatarUrl);
+  photoInput.value = "";
   showMessage("Your profile has been saved!");
 
  } catch (error) {
@@ -225,5 +300,4 @@ document.getElementById("logoutButton")
 loadProfile();
 </script>
 </body>
-  </html>
-  
+</html>
