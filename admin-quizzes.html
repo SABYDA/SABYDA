@@ -55,7 +55,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     <p>Sign in with your existing SABYDA account. Only authorised owners and admins can enter.</p>
     <div id="loginMessage" class="message" aria-live="polite"></div>
 
-    <form id="loginForm">
+    <form id="loginForm" onsubmit="event.preventDefault(); document.getElementById('loginMessage').textContent='Login script is not responding. Please refresh and try again.';">
       <label for="loginEmail">Email address</label>
       <input id="loginEmail" type="email" autocomplete="username" required>
 
