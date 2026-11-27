@@ -1,0 +1,558 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101c30">
+<title>SABYDA Quizzes</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1424;color:#f4f7fc;
+ font-family:Arial,sans-serif
+}
+header{background:#101c30;padding:20px}
+header a{color:#70baff;text-decoration:none}
+main{max-width:850px;margin:auto;padding:20px}
+.hero{
+ background:linear-gradient(135deg,#183c61,#14243a);
+ padding:30px 22px;border-radius:18px;margin-top:20px
+}
+h1{font-size:30px;margin:12px 0}
+p{color:#b8c9dd;line-height:1.6}
+.tag{
+ color:#8bc8ff;background:#244b70;
+ padding:7px 12px;border-radius:20px;font-size:12px
+}
+.card{
+ background:#14243a;border:1px solid #29415e;
+ border-radius:15px;padding:20px;margin-top:18px
+}
+.meta{
+ display:flex;flex-wrap:wrap;gap:8px;margin-top:12px
+}
+.meta span{
+ background:#1b304b;color:#b8d8f5;
+ padding:7px 10px;border-radius:8px;font-size:12px
+}
+.option{
+ display:block;background:#1b304b;border:1px solid #29415e;
+ padding:14px;border-radius:10px;margin-top:10px;
+ cursor:pointer
+}
+.option:has(input:checked){
+ border-color:#70baff;background:#244b70
+}
+.option input{margin-right:10px}
+button{
+ background:#70baff;color:#071525;border:0;
+ padding:13px 20px;border-radius:9px;
+ font-weight:bold;cursor:pointer;margin-top:16px
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.status{color:#70baff;margin-top:15px}
+.error{color:#ff9999}
+.success{color:#8be0a4}
+.question{margin-top:22px}
+.timer{
+ color:#ffd477;font-size:18px;font-weight:bold;
+ margin-top:12px
+}
+footer{text-align:center;color:#8295ad;padding:30px}
+</style>
+</head>
+
+<body>
+<header>
+<a href="index.html">← Back to SABYDA</a>
+<h2>♫ SABYDA</h2>
+</header>
+
+<main>
+<div class="hero">
+<span class="tag">KNOWLEDGE & ENTERTAINMENT</span>
+<h1>🧠 SABYDA Quizzes</h1>
+<p>Test your music knowledge, challenge yourself and earn activity points.</p>
+</div>
+
+<div id="quizContainer">
+<p class="status">Loading quizzes...</p>
+</div>
+</main>
+
+<footer>
+♫ SABYDA<br>
+The Sound of Every Fan.
+</footer>
+
+<script type="module">
+import { createClient } from
+"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL =
+"https://otmgseddljgeuqetufsm.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG";
+
+const supabase=createClient(
+ SUPABASE_URL,SUPABASE_KEY
+);
+
+const container=document.getElementById("quizContainer");
+
+let currentAttempt=null;
+let currentQuiz=null;
+let questions=[];
+let timerInterval=null;
+let submitting=false;
+
+function el(tag,text="",className=""){
+ const node=document.createElement(tag);
+ node.textContent=text;
+ if(className) node.className=className;
+ return node;
+}
+
+function message(text,type="status"){
+ container.replaceChildren();
+ container.appendChild(el("p",text,type));
+}
+
+async function getUser(){
+ const {data,error}=await supabase.auth.getUser();
+ if(error) throw error;
+ return data.user;
+}
+
+async function loadQuizzes(){
+ try{
+  const user=await getUser();
+
+  if(!user){
+   message("Please log in to participate in SABYDA quizzes.");
+
+   const link=el("a","Log in / Sign up");
+   link.href="auth.html";
+   link.style.color="#70baff";
+   link.style.display="inline-block";
+   link.style.marginTop="12px";
+   container.appendChild(link);
+   return;
+  }
+
+  const {data,error}=await supabase.rpc(
+   "get_available_quizzes"
+  );
+
+  if(error) throw error;
+
+  container.replaceChildren();
+
+  if(!data || data.length===0){
+   message("There are no active quizzes right now. Please check back soon.");
+   return;
+  }
+
+  for(const quiz of data){
+   const card=el("section","","card");
+
+   card.appendChild(el("span","AVAILABLE QUIZ","tag"));
+   card.appendChild(el("h2",quiz.title));
+
+   if(quiz.description){
+    card.appendChild(el("p",quiz.description));
+   }
+
+   const meta=el("div","","meta");
+
+   meta.appendChild(el("span",quiz.category||"General"));
+   meta.appendChild(el("span",quiz.question_count+" Questions"));
+
+   meta.appendChild(el("span",
+    quiz.time_limit_seconds
+     ? Math.ceil(quiz.time_limit_seconds/60)+" Minutes"
+     : "No time limit"
+   ));
+
+   meta.appendChild(el("span",
+    quiz.max_attempts+" Attempts maximum"
+   ));
+
+   meta.appendChild(el("span",
+    "Pass: "+quiz.passing_percentage+"%"
+   ));
+
+   card.appendChild(meta);
+
+   const start=el("button","Start Quiz");
+
+   start.addEventListener("click",()=>{
+    startQuiz(quiz);
+   });
+
+   card.appendChild(start);
+   container.appendChild(card);
+  }
+
+ }catch(error){
+  message("Could not load quizzes: "+error.message,"error");
+ }
+}
+
+async function startQuiz(quiz){
+ try{
+  const user=await getUser();
+
+  if(!user){
+   message("Please log in before starting a quiz.","error");
+   return;
+  }
+
+  currentQuiz=quiz;
+  message("Preparing your quiz...");
+
+  const {data:attemptId,error:startError}=
+   await supabase.rpc("start_quiz_attempt",{
+    p_quiz_id:quiz.id
+   });
+
+  if(startError) throw startError;
+
+  currentAttempt=attemptId;
+
+  const {data:statusData,error:statusError}=
+   await supabase.rpc("get_quiz_attempt_status",{
+    p_attempt_id:currentAttempt
+   });
+
+  if(statusError) throw statusError;
+
+  const attemptStatus=Array.isArray(statusData)
+   ? statusData[0]
+   : statusData;
+
+  if(!attemptStatus){
+   throw new Error("Could not verify your quiz attempt.");
+  }
+
+  if(attemptStatus.status!=="in_progress"){
+   throw new Error("This quiz attempt is no longer active.");
+  }
+
+  const {data:questionData,error:questionError}=
+   await supabase.rpc("get_quiz_questions",{
+    p_quiz_id:quiz.id
+   });
+
+  if(questionError) throw questionError;
+
+  questions=prepareQuestions(questionData||[]);
+
+  if(questions.length===0){
+   throw new Error("No questions are available for this quiz.");
+  }
+
+  showQuiz(attemptStatus);
+
+ }catch(error){
+  message(error.message,"error");
+ }
+}
+
+function prepareQuestions(rows){
+ const map=new Map();
+
+ for(const row of rows){
+  if(!map.has(row.question_id)){
+   map.set(row.question_id,{
+    id:row.question_id,
+    text:row.question_text,
+    points:row.points,
+    order:row.question_order,
+    options:[]
+   });
+  }
+
+  if(row.option_id){
+   map.get(row.question_id).options.push({
+    id:row.option_id,
+    text:row.option_text,
+    order:row.option_order
+   });
+  }
+ }
+
+ return Array.from(map.values()).sort(
+  (a,b)=>a.order-b.order
+ );
+}
+
+function showQuiz(attemptStatus){
+ container.replaceChildren();
+
+ const card=el("section","","card");
+
+ card.appendChild(el("span","QUIZ IN PROGRESS","tag"));
+ card.appendChild(el("h2",currentQuiz.title));
+ card.appendChild(el("p",
+  "Choose one answer for each question. Unanswered questions will count as incorrect."
+ ));
+
+ const timer=el("div","","timer");
+ timer.id="quizTimer";
+ card.appendChild(timer);
+
+ const form=el("form");
+ form.id="quizForm";
+
+ questions.forEach((question,index)=>{
+  const section=el("section","","question");
+
+  section.appendChild(el("h3",
+   (index+1)+". "+question.text
+  ));
+
+  for(const option of question.options){
+   const label=el("label","","option");
+
+   const radio=document.createElement("input");
+   radio.type="radio";
+   radio.name="question_"+question.id;
+   radio.value=option.id;
+
+   label.appendChild(radio);
+   label.appendChild(document.createTextNode(option.text));
+
+   section.appendChild(label);
+  }
+
+  form.appendChild(section);
+ });
+
+ const submit=el("button","Submit Answers");
+ submit.type="submit";
+ form.appendChild(submit);
+
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+
+  const answers=collectAnswers();
+
+  if(!window.confirm(
+   "Are you sure you want to submit your answers?"
+  )){
+   return;
+  }
+
+  await submitQuiz(answers);
+ });
+
+ card.appendChild(form);
+ container.appendChild(card);
+
+ startTimer(attemptStatus);
+}
+
+function collectAnswers(){
+ return questions.map(question=>{
+  const selected=document.querySelector(
+   'input[name="question_'+question.id+'"]:checked'
+  );
+
+  return {
+   question_id:question.id,
+   selected_option_id:selected?selected.value:null
+  };
+ });
+}
+
+function startTimer(attemptStatus){
+ clearInterval(timerInterval);
+
+ const timer=document.getElementById("quizTimer");
+ const limit=attemptStatus.time_limit_seconds;
+
+ if(!limit){
+  timer.textContent="No time limit";
+  return;
+ }
+
+ const startedAt=new Date(attemptStatus.started_at).getTime();
+ const endTime=startedAt+(limit*1000);
+
+ function updateTimer(){
+  const remaining=Math.max(
+   0,Math.ceil((endTime-Date.now())/1000)
+  );
+
+  const minutes=Math.floor(remaining/60);
+  const seconds=remaining%60;
+
+  timer.textContent=
+   "Time remaining: "+
+   String(minutes).padStart(2,"0")+":"+
+   String(seconds).padStart(2,"0");
+
+  if(remaining<=0){
+   clearInterval(timerInterval);
+   submitQuiz(collectAnswers(),true);
+  }
+ }
+
+ updateTimer();
+
+ if(Date.now()<endTime){
+  timerInterval=setInterval(updateTimer,1000);
+ }
+}
+
+async function submitQuiz(answers,automatic=false){
+ if(submitting || !currentAttempt) return;
+
+ submitting=true;
+ clearInterval(timerInterval);
+
+ const form=document.getElementById("quizForm");
+
+ if(form){
+  form.querySelectorAll("input,button").forEach(input=>{
+   input.disabled=true;
+  });
+ }
+
+ message(automatic
+  ?"Time is up. Submitting your answers..."
+  :"Submitting your answers..."
+ );
+
+ try{
+  const {data,error}=await supabase.rpc(
+   "submit_quiz_attempt",{
+    p_attempt_id:currentAttempt,
+    p_answers:answers
+   }
+  );
+
+  if(error) throw error;
+
+  const result=Array.isArray(data)?data[0]:data;
+
+  if(!result) throw new Error("No result was returned.");
+
+  if(result.attempt_status!=="submitted"){
+   throw new Error("Your attempt was not submitted successfully.");
+  }
+
+  await showResults(result);
+
+ }catch(error){
+  message("Submission failed: "+error.message,"error");
+
+  const retry=el("button","Try Submission Again");
+  retry.addEventListener("click",()=>{
+   submitting=false;
+   submitQuiz(collectAnswers());
+  });
+  container.appendChild(retry);
+ }
+}
+
+async function showResults(result){
+ clearInterval(timerInterval);
+ container.replaceChildren();
+
+ const card=el("section","","card");
+
+ card.appendChild(el("span","QUIZ COMPLETED","tag"));
+ card.appendChild(el("h2","Your Results"));
+
+ card.appendChild(el("p",
+  "Score: "+result.final_score+" / "+result.final_max_score
+ ));
+
+ card.appendChild(el("p",
+  "Percentage: "+
+  Number(result.final_percentage).toFixed(1)+"%"
+ ));
+
+ card.appendChild(el("p",
+  result.passed
+   ?"Congratulations! You passed!"
+   :"Keep practising. You can improve next time.",
+  result.passed?"success":"status"
+ ));
+
+ card.appendChild(el("p",
+  "Activity points earned: "+result.points_awarded,
+  "success"
+ ));
+
+ container.appendChild(card);
+
+ const {data:details,error}=await supabase.rpc(
+  "get_quiz_attempt_results",{
+   p_attempt_id:currentAttempt
+  }
+ );
+
+ if(error){
+  card.appendChild(el("p",
+   "Your score is saved, but answer details could not be loaded.",
+   "error"
+  ));
+ }else{
+  card.appendChild(el("h3","Answer Review"));
+
+  const rows=Array.isArray(details)
+   ?details
+   :details?[details]:[];
+
+  for(const row of rows){
+   const review=el("div","","card");
+
+   review.appendChild(el("h3",row.question_text));
+
+   review.appendChild(el("p",
+    "Your answer: "+
+    (row.selected_option_text||"Not answered")
+   ));
+
+   review.appendChild(el("p",
+    "Correct answer: "+
+    (row.correct_option_text||"Not available")
+   ));
+
+   review.appendChild(el("p",
+    row.is_correct?"Correct":"Incorrect",
+    row.is_correct?"success":"error"
+   ));
+
+   review.appendChild(el("p",
+    "Question points: "+row.question_points
+   ));
+
+   card.appendChild(review);
+  }
+ }
+
+ const back=el("button","Back to Quizzes");
+
+ back.addEventListener("click",()=>{
+  currentAttempt=null;
+  currentQuiz=null;
+  questions=[];
+  submitting=false;
+  loadQuizzes();
+ });
+
+ card.appendChild(back);
+}
+
+loadQuizzes();
+</script>
+</body>
+  </html>
+  
