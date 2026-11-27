@@ -5,7 +5,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SABYDA | Admin Portal</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:#202124;font-family:Arial,sans-serif;line-height:1.6}
@@ -36,9 +38,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .option-line input[type=text]{flex:1}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 #loginArea{max-width:430px;margin:35px auto}
-@media(max-width:600px){.grid{grid-template-columns:1fr}header{padding:15px}main{padding:20px 16px 50px}}
+@media(max-width:600px){
+.grid{grid-template-columns:1fr}
+header{padding:15px}
+main{padding:20px 16px 50px}
+}
 </style>
 </head>
+
 <body>
 
 <header>
@@ -50,12 +57,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 </header>
 
 <main>
+
   <section id="loginArea">
     <h2>Administrator login</h2>
     <p>Sign in with your existing SABYDA account. Only authorised owners and admins can enter.</p>
+
     <div id="loginMessage" class="message" aria-live="polite"></div>
 
-    <form id="loginForm" onsubmit="event.preventDefault(); document.getElementById('loginMessage').textContent='Supabase library status: ' + typeof window.supabase;">
+    <form id="loginForm">
       <label for="loginEmail">Email address</label>
       <input id="loginEmail" type="email" autocomplete="username" required>
 
@@ -78,6 +87,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
   </section>
 
   <div id="dashboard" class="hidden">
+
     <section class="section">
       <h2>Quiz management</h2>
       <p>Create quizzes, add questions and publish them for SABYDA members.</p>
@@ -86,7 +96,9 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
     <section class="section">
       <h3>Create a new quiz</h3>
+
       <form id="createQuizForm">
+
         <label for="quizTitle">Quiz title</label>
         <input id="quizTitle" maxlength="150" required>
 
@@ -101,10 +113,12 @@ button:disabled{opacity:.55;cursor:not-allowed}
             <label for="questionCount">Number of questions</label>
             <input id="questionCount" type="number" min="1" max="100" value="10" required>
           </div>
+
           <div>
             <label for="timeLimit">Time limit in minutes (optional)</label>
             <input id="timeLimit" type="number" min="1" max="1440" placeholder="No time limit">
           </div>
+
           <div>
             <label for="maxAttempts">Maximum attempts</label>
             <select id="maxAttempts">
@@ -113,6 +127,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
               <option value="3">3 attempts</option>
             </select>
           </div>
+
           <div>
             <label for="passingPercentage">Passing percentage</label>
             <input id="passingPercentage" type="number" min="0" max="100" value="40" required>
@@ -133,6 +148,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
       <h3 id="questionHeading">Add questions</h3>
       <p id="questionProgress"></p>
       <p class="muted">Each question needs at least two options and exactly one correct answer.</p>
+
       <div id="savedQuestions"></div>
 
       <form id="addQuestionForm">
@@ -144,6 +160,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
         <h3>Answer options</h3>
         <p class="muted">Enter at least two options and select the radio button beside the correct answer.</p>
+
         <div id="optionsContainer"></div>
 
         <button id="addQuestionBtn" type="submit">Save question</button>
@@ -159,21 +176,28 @@ button:disabled{opacity:.55;cursor:not-allowed}
       <h3>Existing quizzes</h3>
       <div id="quizList">Loading quizzes...</div>
     </section>
+
   </div>
 </main>
 
 <script>
+(function(){
+
+"use strict";
+
 const SUPABASE_URL="https://otmgseddljgeuqetufsm.supabase.co";
 const SUPABASE_KEY="sb_publishable_u18mA3SdsqCNZGW2bavZWA_GrRRs3YG";
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-let activeQuiz=null;
-let existingQuestions=[];
 
 const $=id=>document.getElementById(id);
 
+let supabaseClient;
+let activeQuiz=null;
+let existingQuestions=[];
+
 function show(id){
-  ["loginArea","accessArea","deniedArea","dashboard"].forEach(name=>$(name).classList.add("hidden"));
+  ["loginArea","accessArea","deniedArea","dashboard"].forEach(name=>{
+    $(name).classList.add("hidden");
+  });
   $(id).classList.remove("hidden");
 }
 
@@ -185,20 +209,30 @@ function message(id,text,type=""){
 function timeout(promise,milliseconds=15000){
   return Promise.race([
     promise,
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error("The request took too long. Check your internet connection and try again.")),milliseconds))
+    new Promise((_,reject)=>{
+      setTimeout(()=>reject(new Error(
+        "The request took too long. Check your internet connection and try again."
+      )),milliseconds);
+    })
   ]);
 }
 
 function escapeHTML(value){
   return String(value??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
   })[c]);
 }
 
 function localDateToISO(value){
   if(!value)return null;
   const date=new Date(value);
-  if(Number.isNaN(date.getTime()))throw new Error("Enter a valid date and time.");
+  if(Number.isNaN(date.getTime())){
+    throw new Error("Enter a valid date and time.");
+  }
   return date.toISOString();
 }
 
@@ -207,26 +241,35 @@ async function verifyAdmin(){
   $("signOutBtn").classList.remove("hidden");
 
   try{
-    const {data,error}=await timeout(supabase.rpc("is_admin"));
+    const {data,error}=await timeout(
+      supabaseClient.rpc("is_admin")
+    );
+
     if(error)throw error;
 
     if(data!==true){
       show("deniedArea");
-      $("deniedMessage").textContent="Your account is signed in, but it does not have the owner or admin role.";
+      $("deniedMessage").textContent=
+        "Your account is signed in, but it does not have the owner or admin role.";
       return;
     }
 
     show("dashboard");
     await loadQuizzes();
+
   }catch(error){
     show("deniedArea");
-    $("deniedMessage").textContent="We could not verify administrator access: "+error.message;
+    $("deniedMessage").textContent=
+      "We could not verify administrator access: "+error.message;
   }
 }
 
 async function checkSession(){
   try{
-    const {data,error}=await timeout(supabase.auth.getSession());
+    const {data,error}=await timeout(
+      supabaseClient.auth.getSession()
+    );
+
     if(error)throw error;
 
     if(data.session){
@@ -235,14 +278,16 @@ async function checkSession(){
       show("loginArea");
       $("signOutBtn").classList.add("hidden");
     }
+
   }catch(error){
     show("loginArea");
     message("loginMessage",error.message,"error");
   }
 }
 
-$("loginForm").addEventListener("submit",async event=>{
+async function signIn(event){
   event.preventDefault();
+
   const button=$("loginBtn");
   button.disabled=true;
   message("loginMessage","Signing in...");
@@ -251,25 +296,42 @@ $("loginForm").addEventListener("submit",async event=>{
     const email=$("loginEmail").value.trim();
     const password=$("loginPassword").value;
 
-    const {data,error}=await timeout(supabase.auth.signInWithPassword({email,password}));
+    const {data,error}=await timeout(
+      supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      })
+    );
+
     if(error)throw error;
-    if(!data.session)throw new Error("Sign-in did not create a session.");
+
+    if(!data.session){
+      throw new Error("Sign-in did not create a session.");
+    }
 
     await verifyAdmin();
+
   }catch(error){
-    message("loginMessage",error.message||"Unable to sign in.","error");
     show("loginArea");
+    message(
+      "loginMessage",
+      error.message||"Unable to sign in.",
+      "error"
+    );
   }finally{
     button.disabled=false;
   }
-});
+}
 
 async function signOut(){
   const button=$("signOutBtn");
   button.disabled=true;
 
   try{
-    const {error}=await timeout(supabase.auth.signOut());
+    const {error}=await timeout(
+      supabaseClient.auth.signOut()
+    );
+
     if(error)throw error;
 
     activeQuiz=null;
@@ -277,7 +339,13 @@ async function signOut(){
     button.classList.add("hidden");
     show("loginArea");
     $("loginPassword").value="";
-    message("loginMessage","You have signed out successfully.","success");
+
+    message(
+      "loginMessage",
+      "You have signed out successfully.",
+      "success"
+    );
+
   }catch(error){
     alert("Sign out failed: "+error.message);
   }finally{
@@ -285,15 +353,15 @@ async function signOut(){
   }
 }
 
-$("signOutBtn").addEventListener("click",signOut);
-$("deniedSignOut").addEventListener("click",signOut);
-
 async function loadQuizzes(){
   const list=$("quizList");
   list.textContent="Loading quizzes...";
 
   try{
-    const {data,error}=await timeout(supabase.rpc("admin_get_quizzes"));
+    const {data,error}=await timeout(
+      supabaseClient.rpc("admin_get_quizzes")
+    );
+
     if(error)throw error;
 
     if(!data||data.length===0){
@@ -302,14 +370,19 @@ async function loadQuizzes(){
     }
 
     list.innerHTML="";
+
     data.forEach(quiz=>{
       const row=document.createElement("div");
       row.className="quiz-row";
 
       const details=document.createElement("div");
-      details.innerHTML="<strong>"+escapeHTML(quiz.title)+"</strong><small>Status: "+
-        escapeHTML(quiz.status)+" · Questions: "+quiz.question_count+
+
+      details.innerHTML=
+        "<strong>"+escapeHTML(quiz.title)+"</strong>"+
+        "<small>Status: "+escapeHTML(quiz.status)+
+        " · Questions: "+quiz.question_count+
         " · Attempts allowed: "+quiz.max_attempts+"</small>";
+
       row.appendChild(details);
 
       if(quiz.status==="draft"){
@@ -320,8 +393,10 @@ async function loadQuizzes(){
         button.addEventListener("click",()=>openDraft(quiz));
         row.appendChild(button);
       }
+
       list.appendChild(row);
     });
+
   }catch(error){
     list.textContent="Unable to load quizzes: "+error.message;
   }
@@ -339,7 +414,11 @@ function createOptionInputs(){
     radio.type="radio";
     radio.name="correctOption";
     radio.value=String(i);
-    radio.setAttribute("aria-label","Mark option "+(i+1)+" as correct");
+    radio.setAttribute(
+      "aria-label",
+      "Mark option "+(i+1)+" as correct"
+    );
+
     if(i===0)radio.checked=true;
 
     const input=document.createElement("input");
@@ -355,11 +434,18 @@ function createOptionInputs(){
 
 async function openDraft(quiz){
   message("pageMessage","Loading draft quiz...");
+
   try{
-    const {data,error}=await timeout(supabase.rpc("admin_get_quiz_editor_data",{p_quiz_id:quiz.id}));
+    const {data,error}=await timeout(
+      supabaseClient.rpc("admin_get_quiz_editor_data",{
+        p_quiz_id:quiz.id
+      })
+    );
+
     if(error)throw error;
 
     const grouped=new Map();
+
     (data||[]).forEach(row=>{
       if(!grouped.has(row.question_id)){
         grouped.set(row.question_id,{
@@ -370,15 +456,27 @@ async function openDraft(quiz){
           options:[]
         });
       }
+
       if(row.option_id){
-        grouped.get(row.question_id).options.push({option_text:row.option_text});
+        grouped.get(row.question_id).options.push({
+          option_text:row.option_text
+        });
       }
     });
 
-    existingQuestions=Array.from(grouped.values()).sort((a,b)=>a.question_order-b.question_order);
+    existingQuestions=Array.from(grouped.values())
+      .sort((a,b)=>a.question_order-b.question_order);
+
     activeQuiz=quiz;
+
     showQuestionEditor();
-    message("pageMessage","Draft loaded. Continue adding questions.","success");
+
+    message(
+      "pageMessage",
+      "Draft loaded. Continue adding questions.",
+      "success"
+    );
+
   }catch(error){
     message("pageMessage",error.message,"error");
   }
@@ -386,17 +484,27 @@ async function openDraft(quiz){
 
 function showQuestionEditor(){
   $("questionSection").classList.remove("hidden");
-  $("questionHeading").textContent="Questions for: "+activeQuiz.title;
+  $("questionHeading").textContent=
+    "Questions for: "+activeQuiz.title;
+
   renderQuestionProgress();
   renderSavedQuestions();
   createOptionInputs();
-  $("questionSection").scrollIntoView({behavior:"smooth",block:"start"});
+
+  $("questionSection").scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
 }
 
 function renderQuestionProgress(){
-  const remaining=activeQuiz.question_count-existingQuestions.length;
-  $("questionProgress").textContent="Questions saved: "+existingQuestions.length+
-    " of "+activeQuiz.question_count+". Remaining: "+remaining+".";
+  const remaining=
+    activeQuiz.question_count-existingQuestions.length;
+
+  $("questionProgress").textContent=
+    "Questions saved: "+existingQuestions.length+
+    " of "+activeQuiz.question_count+
+    ". Remaining: "+remaining+".";
 
   if(remaining<=0){
     $("addQuestionForm").classList.add("hidden");
@@ -410,20 +518,28 @@ function renderQuestionProgress(){
 function renderSavedQuestions(){
   const container=$("savedQuestions");
   container.innerHTML="";
+
   existingQuestions.forEach((question,index)=>{
     const item=document.createElement("div");
     item.className="quiz-row";
+
     const title=document.createElement("strong");
-    title.textContent=(index+1)+". "+question.question_text;
+    title.textContent=
+      (index+1)+". "+question.question_text;
+
     const detail=document.createElement("small");
-    detail.textContent=question.points+" points · "+question.options.length+" options";
+    detail.textContent=
+      question.points+" points · "+
+      question.options.length+" options";
+
     item.append(title,detail);
     container.appendChild(item);
   });
 }
 
-$("createQuizForm").addEventListener("submit",async event=>{
+async function createQuiz(event){
   event.preventDefault();
+
   const button=$("createQuizBtn");
   button.disabled=true;
   message("pageMessage","Creating quiz draft...");
@@ -435,44 +551,73 @@ $("createQuizForm").addEventListener("submit",async event=>{
     const minutes=$("timeLimit").value;
 
     if(!title)throw new Error("Enter a quiz title.");
-    if(!Number.isInteger(count)||count<1||count>100)throw new Error("Question count must be between 1 and 100.");
-    if(!Number.isFinite(passing)||passing<0||passing>100)throw new Error("Passing percentage must be between 0 and 100.");
+
+    if(!Number.isInteger(count)||count<1||count>100){
+      throw new Error("Question count must be between 1 and 100.");
+    }
+
+    if(!Number.isFinite(passing)||passing<0||passing>100){
+      throw new Error("Passing percentage must be between 0 and 100.");
+    }
 
     const starts=localDateToISO($("startsAt").value);
     const ends=localDateToISO($("endsAt").value);
-    if(starts&&ends&&new Date(ends)<=new Date(starts))throw new Error("End date must be later than start date.");
+
+    if(starts&&ends&&new Date(ends)<=new Date(starts)){
+      throw new Error("End date must be later than start date.");
+    }
 
     const seconds=minutes?Number(minutes)*60:null;
-    if(seconds!==null&&(!Number.isInteger(seconds)||seconds<=0))throw new Error("Enter a valid time limit.");
 
-    const {data,error}=await timeout(supabase.rpc("admin_create_quiz",{
-      p_title:title,
-      p_description:$("quizDescription").value.trim()||null,
-      p_category:$("quizCategory").value.trim()||null,
-      p_question_count:count,
-      p_time_limit_seconds:seconds,
-      p_max_attempts:Number($("maxAttempts").value),
-      p_passing_percentage:passing,
-      p_starts_at:starts,
-      p_ends_at:ends
-    }));
+    if(seconds!==null&&(!Number.isInteger(seconds)||seconds<=0)){
+      throw new Error("Enter a valid time limit.");
+    }
+
+    const {data,error}=await timeout(
+      supabaseClient.rpc("admin_create_quiz",{
+        p_title:title,
+        p_description:$("quizDescription").value.trim()||null,
+        p_category:$("quizCategory").value.trim()||null,
+        p_question_count:count,
+        p_time_limit_seconds:seconds,
+        p_max_attempts:Number($("maxAttempts").value),
+        p_passing_percentage:passing,
+        p_starts_at:starts,
+        p_ends_at:ends
+      })
+    );
 
     if(error)throw error;
 
-    activeQuiz={id:data,title,question_count:count,status:"draft"};
+    activeQuiz={
+      id:data,
+      title,
+      question_count:count,
+      status:"draft"
+    };
+
     existingQuestions=[];
+
     showQuestionEditor();
-    message("pageMessage","Draft created. Now add your questions.","success");
+
+    message(
+      "pageMessage",
+      "Draft created. Now add your questions.",
+      "success"
+    );
+
     await loadQuizzes();
+
   }catch(error){
     message("pageMessage",error.message,"error");
   }finally{
     button.disabled=false;
   }
-});
+}
 
-$("addQuestionForm").addEventListener("submit",async event=>{
+async function addQuestion(event){
   event.preventDefault();
+
   if(!activeQuiz)return;
 
   const button=$("addQuestionBtn");
@@ -480,44 +625,70 @@ $("addQuestionForm").addEventListener("submit",async event=>{
   message("pageMessage","Saving question and options...");
 
   try{
-    if(existingQuestions.length>=activeQuiz.question_count)throw new Error("All questions have already been added.");
+    if(existingQuestions.length>=activeQuiz.question_count){
+      throw new Error("All questions have already been added.");
+    }
 
     const questionText=$("questionText").value.trim();
     const points=Number($("questionPoints").value);
+
     if(!questionText)throw new Error("Enter the question.");
-    if(!Number.isFinite(points)||points<=0)throw new Error("Points must be greater than zero.");
+
+    if(!Number.isFinite(points)||points<=0){
+      throw new Error("Points must be greater than zero.");
+    }
 
     const options=[0,1,2,3].map(index=>({
-      text:$("option"+index).value.trim(),index
+      text:$("option"+index).value.trim(),
+      index
     })).filter(option=>option.text);
 
-    if(options.length<2)throw new Error("Enter at least two answer options.");
+    if(options.length<2){
+      throw new Error("Enter at least two answer options.");
+    }
 
-    const correct=document.querySelector('input[name="correctOption"]:checked');
-    if(!correct||!options.some(option=>option.index===Number(correct.value))){
+    const correct=document.querySelector(
+      'input[name="correctOption"]:checked'
+    );
+
+    if(!correct||!options.some(
+      option=>option.index===Number(correct.value)
+    )){
       throw new Error("Select one of the entered options as correct.");
     }
 
     const order=existingQuestions.length+1;
+
     const {data:questionId,error:questionError}=await timeout(
-      supabase.rpc("admin_add_quiz_question",{
+      supabaseClient.rpc("admin_add_quiz_question",{
         p_quiz_id:activeQuiz.id,
         p_question_text:questionText,
         p_points:points,
         p_sort_order:order
       })
     );
+
     if(questionError)throw questionError;
 
     for(let i=0;i<options.length;i++){
       const option=options[i];
-      const {error}=await timeout(supabase.rpc("admin_add_quiz_option",{
-        p_question_id:questionId,
-        p_option_text:option.text,
-        p_is_correct:option.index===Number(correct.value),
-        p_sort_order:i+1
-      }));
-      if(error)throw new Error("Question saved, but an option failed to save: "+error.message+". Reload the draft before continuing.");
+
+      const {error}=await timeout(
+        supabaseClient.rpc("admin_add_quiz_option",{
+          p_question_id:questionId,
+          p_option_text:option.text,
+          p_is_correct:option.index===Number(correct.value),
+          p_sort_order:i+1
+        })
+      );
+
+      if(error){
+        throw new Error(
+          "Question saved, but an option failed to save: "+
+          error.message+
+          ". Reload the draft before continuing."
+        );
+      }
     }
 
     existingQuestions.push({
@@ -525,56 +696,125 @@ $("addQuestionForm").addEventListener("submit",async event=>{
       question_text:questionText,
       points,
       question_order:order,
-      options:options.map(option=>({option_text:option.text}))
+      options:options.map(option=>({
+        option_text:option.text
+      }))
     });
 
     $("questionText").value="";
     $("questionPoints").value="10";
-    [0,1,2,3].forEach(i=>$("option"+i).value="");
+
+    [0,1,2,3].forEach(i=>{
+      $("option"+i).value="";
+    });
+
     createOptionInputs();
     renderSavedQuestions();
     renderQuestionProgress();
-    message("pageMessage","Question "+existingQuestions.length+" saved successfully.","success");
+
+    message(
+      "pageMessage",
+      "Question "+existingQuestions.length+" saved successfully.",
+      "success"
+    );
+
   }catch(error){
     message("pageMessage",error.message,"error");
   }finally{
     button.disabled=false;
   }
-});
+}
 
-$("publishBtn").addEventListener("click",async()=>{
+async function publishQuiz(){
   if(!activeQuiz)return;
-  if(!confirm("Publish this quiz now? Members can access it when its schedule allows."))return;
+
+  if(!confirm(
+    "Publish this quiz now? Members can access it when its schedule allows."
+  ))return;
 
   const button=$("publishBtn");
   button.disabled=true;
   message("pageMessage","Publishing quiz...");
 
   try{
-    const {data,error}=await timeout(supabase.rpc("admin_publish_quiz",{p_quiz_id:activeQuiz.id}));
-    if(error)throw error;
-    if(data!==true)throw new Error("The quiz was not published.");
+    const {data,error}=await timeout(
+      supabaseClient.rpc("admin_publish_quiz",{
+        p_quiz_id:activeQuiz.id
+      })
+    );
 
-    message("pageMessage","Quiz published successfully!","success");
+    if(error)throw error;
+
+    if(data!==true){
+      throw new Error("The quiz was not published.");
+    }
+
+    message(
+      "pageMessage",
+      "Quiz published successfully!",
+      "success"
+    );
+
     activeQuiz=null;
     existingQuestions=[];
+
     $("questionSection").classList.add("hidden");
+
     await loadQuizzes();
+
   }catch(error){
     message("pageMessage",error.message,"error");
   }finally{
     button.disabled=false;
   }
-});
+}
 
-$("closeEditorBtn").addEventListener("click",()=>{
+function closeEditor(){
   activeQuiz=null;
   existingQuestions=[];
-  $("questionSection").classList.add("hidden");
-  message("pageMessage","Quiz editor closed.");
-});
+  
+$("questionSection").classList.add("hidden");
+message("pageMessage","Quiz editor closed.");
+}
 
-checkSession();
+function initialise(){
+  try{
+    if(!window.supabase||
+       typeof window.supabase.createClient!=="function"){
+      throw new Error(
+        "Supabase library did not load correctly. Check your internet connection and refresh the page."
+      );
+    }
+
+    supabaseClient=window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    $("loginForm").addEventListener("submit",signIn);
+    $("signOutBtn").addEventListener("click",signOut);
+    $("deniedSignOut").addEventListener("click",signOut);
+    $("createQuizForm").addEventListener("submit",createQuiz);
+    $("addQuestionForm").addEventListener("submit",addQuestion);
+    $("publishBtn").addEventListener("click",publishQuiz);
+    $("closeEditorBtn").addEventListener("click",closeEditor);
+
+    checkSession();
+
+  }catch(error){
+    show("loginArea");
+    message(
+      "loginMessage",
+      "Portal startup error: "+error.message,
+      "error"
+    );
+  }
+}
+
+initialise();
+
+})();
 </script>
+
 </body>
 </html>
